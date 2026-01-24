@@ -1,0 +1,90 @@
+{
+  "id": "PM_20250105_003",
+  "date": "2025-01-05",
+  "vendor": {
+    "name": "Annapurna Copperware",
+    "branch": "Mylapore, Chennai",
+    "billNumber": "ACP/CHN/MY/2025/0234",
+    "gstin": "33AABCA1234P1ZC"
+  },
+  "items": [
+    {
+      "type": "utensil",
+      "description": "Pure Copper Water Pot (Kalash)",
+      "metalType": "copper",
+      "weight": {
+        "gross": 850.0,
+        "net": 850.0,
+        "stone": 0
+      },
+      "purity": {
+        "copperPurity": "99.9%",
+        "description": "Pure Copper"
+      },
+      "rate": 0.75,
+      "metalValue": 637.50,
+      "makingCharge": {
+        "amount": 500,
+        "type": "flat"
+      },
+      "wastage": {
+        "percentage": 0,
+        "amount": 0
+      },
+      "stoneCharges": 0,
+      "designDetails": {
+        "finish": "polished",
+        "style": "Traditional Kalash"
+      },
+      "otherCharges": 50
+    },
+    {
+      "type": "utensil",
+      "description": "Copper Drinking Glasses (Set of 4)",
+      "metalType": "copper",
+      "weight": {
+        "gross": 320.0,
+        "net": 320.0,
+        "stone": 0
+      },
+      "purity": {
+        "copperPurity": "99.5%",
+        "description": "Pure Copper"
+      },
+      "rate": 0.70,
+      "metalValue": 224,
+      "makingCharge": {
+        "amount": 400,
+        "type": "flat"
+      },
+      "wastage": {
+        "percentage": 0,
+        "amount": 0
+      },
+      "stoneCharges": 0,
+      "designDetails": {
+        "finish": "hammered",
+        "style": "Hammered Finish"
+      },
+      "otherCharges": 0
+    }
+  ],
+  "totalAmount": {
+    "subtotal": 1811.50,
+    "gst": {
+      "cgst": 162.04,
+      "sgst": 162.04,
+      "total": 324.08
+    },
+    "discount": 0,
+    "roundOff": -0.58,
+    "finalAmount": 2135
+  },
+  "paymentMethod": "cash",
+  "warrantyDetails": {
+    "hasWarranty": false
+  },
+  "billImage": "/storage/bills/annapurna_copper_20250105.jpg",
+  "extractedBy": "manual",
+  "notes": "Health benefits of copper utensils"
+}

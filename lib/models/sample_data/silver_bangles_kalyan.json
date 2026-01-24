@@ -1,0 +1,76 @@
+{
+  "id": "PM_20241220_004",
+  "date": "2024-12-20",
+  "vendor": {
+    "name": "Kalyan Jewellers",
+    "branch": "Vadapalani, Chennai",
+    "billNumber": "KLN/CHN/VP/24/9012",
+    "gstin": "33AABCK5678M1ZP"
+  },
+  "items": [
+    {
+      "type": "bangle",
+      "description": "Oxidized Silver Bangles (Pair)",
+      "metalType": "silver",
+      "weight": {
+        "gross": 65.0,
+        "net": 62.0,
+        "stone": 3.0
+      },
+      "purity": {
+        "silverPurity": "925",
+        "fineness": 925,
+        "description": "Sterling Silver 92.5%"
+      },
+      "rate": 82,
+      "metalValue": 5084,
+      "makingCharge": {
+        "amount": 2500,
+        "type": "flat"
+      },
+      "wastage": {
+        "percentage": 8,
+        "amount": 406.72
+      },
+      "stoneCharges": 800,
+      "hallmarkDetails": {
+        "isHallmarked": true,
+        "hallmarkAgency": "BIS",
+        "hallmarkNumber": "BIS-AG-2024-9012"
+      },
+      "designDetails": {
+        "finish": "oxidized",
+        "style": "Antique Tribal Design"
+      },
+      "otherCharges": 200
+    }
+  ],
+  "totalAmount": {
+    "subtotal": 8990.72,
+    "gst": {
+      "cgst": 134.86,
+      "sgst": 134.86,
+      "total": 269.72
+    },
+    "discount": 500,
+    "roundOff": -0.44,
+    "finalAmount": 8760
+  },
+  "exchangeDetails": {
+    "oldItemDescription": "Old silver coins",
+    "oldItemWeight": 20.0,
+    "exchangeValue": 1500
+  },
+  "paymentMethod": "card",
+  "warrantyDetails": {
+    "hasWarranty": true,
+    "warrantyPeriod": "1 year",
+    "warrantyNumber": "KLN-AG-2024-9012"
+  },
+  "billImage": "/storage/bills/kalyan_silver_20241220.jpg",
+  "certificateImages": [
+    "/storage/certificates/bis_ag_2024_9012.pdf"
+  ],
+  "extractedBy": "ocr",
+  "notes": "Festival special - oxidized antique finish with exchange"
+}

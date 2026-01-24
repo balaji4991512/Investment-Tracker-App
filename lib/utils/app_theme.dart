@@ -22,6 +22,8 @@ class AppTheme {
   static const mutualFundColor = Color(0xFF5E35B1); // Purple
   static const digitalGoldColor = Color(0xFFFFB300); // Gold
   static const physicalGoldColor = Color(0xFFFF8F00); // Dark Gold
+  static const diamondColor = Color(0xFFB9F2FF); // Light Diamond Blue
+  static const preciousMetalsColor = Color(0xFFCFD8DC); // Silver/Platinum Grey
 
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,

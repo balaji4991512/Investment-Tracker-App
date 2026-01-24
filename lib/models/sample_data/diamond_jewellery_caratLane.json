@@ -1,0 +1,95 @@
+{
+  "id": "DJ_20241210_002",
+  "date": "2024-12-10",
+  "vendor": {
+    "name": "CaratLane",
+    "branch": "Forum Mall, Bangalore",
+    "billNumber": "CL/BLR/2024/12456",
+    "gstin": "29AABCC5419K1ZX"
+  },
+  "items": [
+    {
+      "type": "earrings",
+      "description": "18K Gold Diamond Stud Earrings",
+      "metalDetails": {
+        "metalType": "gold",
+        "weight": {
+          "gross": 3.2,
+          "net": 2.6,
+          "diamond": 0.4,
+          "stone": 0.2
+        },
+        "purity": {
+          "karat": 18,
+          "fineness": 750
+        },
+        "rate": 5100,
+        "metalValue": 13260
+      },
+      "diamondDetails": {
+        "totalCarats": 0.40,
+        "numberOfDiamonds": 24,
+        "diamonds": [
+          {
+            "carats": 0.40,
+            "cut": "round",
+            "clarity": "SI1",
+            "color": "G",
+            "shape": "Round Brilliant",
+            "certificateNumber": "IGI-12345-2024",
+            "certificateAgency": "IGI"
+          }
+        ],
+        "diamondRate": 280000,
+        "diamondValue": 112000
+      },
+      "otherStones": [
+        {
+          "type": "ruby",
+          "weight": 0.2,
+          "quantity": 4,
+          "value": 1500
+        }
+      ],
+      "makingCharge": {
+        "amount": 8500,
+        "type": "flat"
+      },
+      "wastage": {
+        "percentage": 5,
+        "amount": 663
+      },
+      "settingCharges": 4000,
+      "certificationCharges": 1000,
+      "otherCharges": 0
+    }
+  ],
+  "totalAmount": {
+    "subtotal": 140923,
+    "gst": {
+      "cgst": 2113.85,
+      "sgst": 2113.85,
+      "total": 4227.70
+    },
+    "discount": 5000,
+    "roundOff": -0.70,
+    "finalAmount": 140150
+  },
+  "exchangeDetails": {
+    "oldItemDescription": "Old gold earrings",
+    "oldItemWeight": 2.5,
+    "exchangeValue": 12000
+  },
+  "paymentMethod": "mixed",
+  "warrantyDetails": {
+    "hasWarranty": true,
+    "warrantyPeriod": "1 year",
+    "warrantyNumber": "CL-2024-12456"
+  },
+  "billImage": "/storage/bills/caratLane_20241210.jpg",
+  "certificateImages": [
+    "/storage/certificates/igi_12345_2024.pdf"
+  ],
+  "extractedBy": "manual",
+  "notes": "Exchange offer applied - Diwali special discount"
+}

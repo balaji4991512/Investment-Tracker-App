@@ -1,0 +1,188 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Physical Gold Purchase",
+  "description": "Universal schema for physical gold jewelry/coin/bar purchases",
+  "type": "object",
+  "required": ["id", "date", "vendor", "items", "totalAmount"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique transaction ID"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Purchase date (YYYY-MM-DD)"
+    },
+    "vendor": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Shop/company name (Tanishq, Kalyan, Malabar, etc.)"
+        },
+        "branch": {
+          "type": "string",
+          "description": "Branch location"
+        },
+        "billNumber": {
+          "type": "string",
+          "description": "Invoice/Bill number"
+        },
+        "gstin": {
+          "type": "string",
+          "description": "GST number"
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "description": "List of jewelry items purchased",
+      "items": {
+        "type": "object",
+        "required": ["type", "weight", "purity", "rate"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["ring", "necklace", "chain", "bracelet", "earrings", "bangle", "coin", "bar", "other"],
+            "description": "Type of jewelry/gold item"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description from bill"
+          },
+          "weight": {
+            "type": "object",
+            "required": ["gross", "net"],
+            "properties": {
+              "gross": {
+                "type": "number",
+                "description": "Gross weight in grams (includes stones)"
+              },
+              "net": {
+                "type": "number",
+                "description": "Net gold weight in grams"
+              },
+              "stone": {
+                "type": "number",
+                "description": "Stone weight in grams"
+              }
+            }
+          },
+          "purity": {
+            "type": "object",
+            "required": ["karat"],
+            "properties": {
+              "karat": {
+                "type": "number",
+                "enum": [22, 24, 18, 14],
+                "description": "Gold purity (22K, 24K, etc.)"
+              },
+              "fineness": {
+                "type": "number",
+                "description": "Purity in fineness (e.g., 916 for 22K)"
+              }
+            }
+          },
+          "rate": {
+            "type": "number",
+            "description": "Gold rate per gram on purchase date"
+          },
+          "goldValue": {
+            "type": "number",
+            "description": "Net weight × Rate"
+          },
+          "makingCharge": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "number",
+                "description": "Making/Labour charges"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["flat", "percentage", "per_gram"],
+                "description": "How making charge is calculated"
+              }
+            }
+          },
+          "wastage": {
+            "type": "object",
+            "properties": {
+              "percentage": {
+                "type": "number",
+                "description": "Wastage percentage"
+              },
+              "amount": {
+                "type": "number",
+                "description": "Wastage amount in rupees"
+              }
+            }
+          },
+          "stoneCharges": {
+            "type": "number",
+            "description": "Cost of stones/diamonds"
+          },
+          "otherCharges": {
+            "type": "number",
+            "description": "Any other charges"
+          }
+        }
+      }
+    },
+    "totalAmount": {
+      "type": "object",
+      "required": ["subtotal", "gst", "finalAmount"],
+      "properties": {
+        "subtotal": {
+          "type": "number",
+          "description": "Total before GST"
+        },
+        "gst": {
+          "type": "object",
+          "properties": {
+            "cgst": {
+              "type": "number",
+              "description": "CGST amount"
+            },
+            "sgst": {
+              "type": "number",
+              "description": "SGST amount"
+            },
+            "total": {
+              "type": "number",
+              "description": "Total GST (CGST + SGST)"
+            }
+          }
+        },
+        "roundOff": {
+          "type": "number",
+          "description": "Round off adjustment"
+        },
+        "finalAmount": {
+          "type": "number",
+          "description": "Total amount paid"
+        }
+      }
+    },
+    "paymentMethod": {
+      "type": "string",
+      "enum": ["cash", "card", "upi", "bank_transfer", "mixed"],
+      "description": "How payment was made"
+    },
+    "billImage": {
+      "type": "string",
+      "description": "Path to scanned bill image"
+    },
+    "extractedBy": {
+      "type": "string",
+      "enum": ["ocr", "manual", "voice"],
+      "description": "How data was captured"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    }
+  }
+}

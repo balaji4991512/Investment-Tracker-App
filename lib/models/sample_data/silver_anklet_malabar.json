@@ -1,0 +1,71 @@
+{
+  "id": "PM_20241215_002",
+  "date": "2024-12-15",
+  "vendor": {
+    "name": "Malabar Gold & Diamonds",
+    "branch": "T Nagar, Chennai",
+    "billNumber": "MGL/CHN/TN/2024/5678",
+    "gstin": "33AABCM8765N1Z3"
+  },
+  "items": [
+    {
+      "type": "anklet",
+      "description": "925 Sterling Silver Anklet with Ghungroo",
+      "metalType": "silver",
+      "weight": {
+        "gross": 45.0,
+        "net": 45.0,
+        "stone": 0
+      },
+      "purity": {
+        "silverPurity": "925",
+        "fineness": 925,
+        "description": "Sterling Silver 92.5%"
+      },
+      "rate": 85,
+      "metalValue": 3825,
+      "makingCharge": {
+        "amount": 1200,
+        "type": "flat"
+      },
+      "wastage": {
+        "percentage": 10,
+        "amount": 382.50
+      },
+      "stoneCharges": 0,
+      "hallmarkDetails": {
+        "isHallmarked": true,
+        "hallmarkAgency": "BIS",
+        "hallmarkNumber": "BIS-AG-2024-5678"
+      },
+      "designDetails": {
+        "finish": "polished",
+        "style": "Traditional Ghungroo Design"
+      },
+      "otherCharges": 0
+    }
+  ],
+  "totalAmount": {
+    "subtotal": 5407.50,
+    "gst": {
+      "cgst": 162.23,
+      "sgst": 162.23,
+      "total": 324.46
+    },
+    "discount": 200,
+    "roundOff": -0.96,
+    "finalAmount": 5531
+  },
+  "paymentMethod": "upi",
+  "warrantyDetails": {
+    "hasWarranty": true,
+    "warrantyPeriod": "6 months",
+    "warrantyNumber": "MGL-AG-2024-5678"
+  },
+  "billImage": "/storage/bills/malabar_silver_20241215.jpg",
+  "certificateImages": [
+    "/storage/certificates/bis_ag_2024_5678.pdf"
+  ],
+  "extractedBy": "manual",
+  "notes": "Wedding purchase - traditional design"
+}

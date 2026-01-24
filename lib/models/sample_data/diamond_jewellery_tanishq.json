@@ -1,0 +1,90 @@
+{
+  "id": "DJ_20250118_001",
+  "date": "2025-01-18",
+  "vendor": {
+    "name": "Tanishq",
+    "branch": "Express Avenue, Chennai",
+    "billNumber": "TNQ/CHN/EA/2025/00567",
+    "gstin": "33AAACT2727Q1ZV"
+  },
+  "items": [
+    {
+      "type": "ring",
+      "description": "18K White Gold Solitaire Diamond Ring",
+      "metalDetails": {
+        "metalType": "white_gold",
+        "weight": {
+          "gross": 4.5,
+          "net": 3.8,
+          "diamond": 0.5,
+          "stone": 0.2
+        },
+        "purity": {
+          "karat": 18,
+          "fineness": 750
+        },
+        "rate": 5200,
+        "metalValue": 19760
+      },
+      "diamondDetails": {
+        "totalCarats": 0.50,
+        "numberOfDiamonds": 1,
+        "diamonds": [
+          {
+            "carats": 0.50,
+            "cut": "round",
+            "clarity": "VS1",
+            "color": "F",
+            "shape": "Round Brilliant",
+            "certificateNumber": "GIA2197845623",
+            "certificateAgency": "GIA"
+          }
+        ],
+        "diamondRate": 450000,
+        "diamondValue": 225000
+      },
+      "otherStones": [
+        {
+          "type": "other",
+          "weight": 0.2,
+          "quantity": 12,
+          "value": 2400
+        }
+      ],
+      "makingCharge": {
+        "amount": 15000,
+        "type": "flat"
+      },
+      "wastage": {
+        "percentage": 0,
+        "amount": 0
+      },
+      "settingCharges": 8000,
+      "certificationCharges": 1500,
+      "otherCharges": 500
+    }
+  ],
+  "totalAmount": {
+    "subtotal": 272160,
+    "gst": {
+      "cgst": 4082.40,
+      "sgst": 4082.40,
+      "total": 8164.80
+    },
+    "discount": 0,
+    "roundOff": -0.80,
+    "finalAmount": 280324
+  },
+  "paymentMethod": "card",
+  "warrantyDetails": {
+    "hasWarranty": true,
+    "warrantyPeriod": "lifetime",
+    "warrantyNumber": "TNQ-WR-2025-567"
+  },
+  "billImage": "/storage/bills/tanishq_diamond_20250118.jpg",
+  "certificateImages": [
+    "/storage/certificates/gia_2197845623.pdf"
+  ],
+  "extractedBy": "ocr",
+  "notes": "Engagement ring - GIA certified solitaire"
+}

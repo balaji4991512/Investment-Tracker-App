@@ -1,0 +1,307 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Precious Metals Jewellery Purchase",
+  "description": "Universal schema for platinum, silver, copper, and other metal jewelry (without diamonds)",
+  "type": "object",
+  "required": ["id", "date", "vendor", "items", "totalAmount"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique transaction ID"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Purchase date (YYYY-MM-DD)"
+    },
+    "vendor": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Shop/company name"
+        },
+        "branch": {
+          "type": "string",
+          "description": "Branch location"
+        },
+        "billNumber": {
+          "type": "string",
+          "description": "Invoice/Bill number"
+        },
+        "gstin": {
+          "type": "string",
+          "description": "GST number"
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "description": "List of jewelry items purchased",
+      "items": {
+        "type": "object",
+        "required": ["type", "metalType", "weight", "purity"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["ring", "necklace", "chain", "bracelet", "bangle", "earrings", "anklet", "nose_pin", "toe_ring", "pendant", "coin", "bar", "utensil", "idol", "other"],
+            "description": "Type of jewelry/item"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description from bill"
+          },
+          "metalType": {
+            "type": "string",
+            "enum": ["platinum", "silver", "copper", "brass", "bronze", "white_metal", "panchaloha", "mixed"],
+            "description": "Type of metal"
+          },
+          "weight": {
+            "type": "object",
+            "required": ["gross", "net"],
+            "properties": {
+              "gross": {
+                "type": "number",
+                "description": "Gross weight in grams (includes stones)"
+              },
+              "net": {
+                "type": "number",
+                "description": "Net metal weight in grams"
+              },
+              "stone": {
+                "type": "number",
+                "description": "Stone/gem weight in grams"
+              }
+            }
+          },
+          "purity": {
+            "type": "object",
+            "properties": {
+              "platinumPurity": {
+                "type": "string",
+                "enum": ["PT999", "PT950", "PT900", "PT850"],
+                "description": "Platinum purity (999 is 99.9% pure)"
+              },
+              "silverPurity": {
+                "type": "string",
+                "enum": ["999", "925", "900", "800"],
+                "description": "Silver purity (925 is Sterling Silver)"
+              },
+              "copperPurity": {
+                "type": "string",
+                "enum": ["99.9%", "99.5%", "pure", "alloy"],
+                "description": "Copper purity"
+              },
+              "fineness": {
+                "type": "number",
+                "description": "Purity in fineness format"
+              },
+              "description": {
+                "type": "string",
+                "description": "Purity description (e.g., 'Sterling Silver', 'Pure Platinum')"
+              }
+            }
+          },
+          "rate": {
+            "type": "number",
+            "description": "Metal rate per gram on purchase date"
+          },
+          "metalValue": {
+            "type": "number",
+            "description": "Net weight × Rate"
+          },
+          "makingCharge": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "number",
+                "description": "Making/Labour charges"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["flat", "percentage", "per_gram"],
+                "description": "How making charge is calculated"
+              }
+            }
+          },
+          "wastage": {
+            "type": "object",
+            "properties": {
+              "percentage": {
+                "type": "number",
+                "description": "Wastage percentage"
+              },
+              "amount": {
+                "type": "number",
+                "description": "Wastage amount in rupees"
+              }
+            }
+          },
+          "stoneCharges": {
+            "type": "number",
+            "description": "Cost of non-diamond stones/gems (pearls, emeralds, rubies, etc.)"
+          },
+          "hallmarkDetails": {
+            "type": "object",
+            "description": "Hallmark certification details",
+            "properties": {
+              "isHallmarked": {
+                "type": "boolean",
+                "description": "Whether item is hallmarked"
+              },
+              "hallmarkAgency": {
+                "type": "string",
+                "enum": ["BIS", "Hallmark", "Assay", "none"],
+                "description": "Hallmarking agency"
+              },
+              "hallmarkNumber": {
+                "type": "string",
+                "description": "Hallmark certificate number"
+              }
+            }
+          },
+          "designDetails": {
+            "type": "object",
+            "properties": {
+              "finish": {
+                "type": "string",
+                "enum": ["polished", "matte", "antique", "oxidized", "brushed", "hammered"],
+                "description": "Surface finish"
+              },
+              "style": {
+                "type": "string",
+                "description": "Style/design name"
+              }
+            }
+          },
+          "otherCharges": {
+            "type": "number",
+            "description": "Any other charges"
+          }
+        }
+      }
+    },
+    "totalAmount": {
+      "type": "object",
+      "required": ["subtotal", "gst", "finalAmount"],
+      "properties": {
+        "subtotal": {
+          "type": "number",
+          "description": "Total before GST"
+        },
+        "gst": {
+          "type": "object",
+          "properties": {
+            "cgst": {
+              "type": "number",
+              "description": "CGST amount"
+            },
+            "sgst": {
+              "type": "number",
+              "description": "SGST amount"
+            },
+            "igst": {
+              "type": "number",
+              "description": "IGST amount (for inter-state)"
+            },
+            "total": {
+              "type": "number",
+              "description": "Total GST"
+            }
+          }
+        },
+        "discount": {
+          "type": "number",
+          "description": "Any discount applied"
+        },
+        "roundOff": {
+          "type": "number",
+          "description": "Round off adjustment"
+        },
+        "finalAmount": {
+          "type": "number",
+          "description": "Total amount paid"
+        }
+      }
+    },
+    "exchangeDetails": {
+      "type": "object",
+      "description": "If old jewelry was exchanged",
+      "properties": {
+        "oldItemDescription": {
+          "type": "string",
+          "description": "Description of exchanged item"
+        },
+        "oldItemWeight": {
+          "type": "number",
+          "description": "Weight of exchanged item"
+        },
+        "exchangeValue": {
+          "type": "number",
+          "description": "Value credited for old item"
+        }
+      }
+    },
+    "paymentMethod": {
+      "type": "string",
+      "enum": ["cash", "card", "upi", "bank_transfer", "emi", "mixed"],
+      "description": "How payment was made"
+    },
+    "emiDetails": {
+      "type": "object",
+      "description": "If purchased on EMI",
+      "properties": {
+        "tenure": {
+          "type": "integer",
+          "description": "Number of months"
+        },
+        "monthlyAmount": {
+          "type": "number",
+          "description": "EMI amount per month"
+        },
+        "interestRate": {
+          "type": "number",
+          "description": "Interest rate percentage"
+        }
+      }
+    },
+    "warrantyDetails": {
+      "type": "object",
+      "properties": {
+        "hasWarranty": {
+          "type": "boolean",
+          "description": "Whether warranty is provided"
+        },
+        "warrantyPeriod": {
+          "type": "string",
+          "description": "Warranty period"
+        },
+        "warrantyNumber": {
+          "type": "string",
+          "description": "Warranty card number"
+        }
+      }
+    },
+    "billImage": {
+      "type": "string",
+      "description": "Path to scanned bill image"
+    },
+    "certificateImages": {
+      "type": "array",
+      "description": "Paths to hallmark certificates",
+      "items": {
+        "type": "string"
+      }
+    },
+    "extractedBy": {
+      "type": "string",
+      "enum": ["ocr", "manual", "voice"],
+      "description": "How data was captured"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    }
+  }
+}

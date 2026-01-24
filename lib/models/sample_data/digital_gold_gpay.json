@@ -1,0 +1,25 @@
+{
+  "id": "DG_20250120_001",
+  "date": "2025-01-20T14:35:22+05:30",
+  "platform": "google_pay",
+  "provider": "mmtc_pamp",
+  "transactionType": "buy",
+  "weight": 0.5,
+  "purity": 24,
+  "rate": 7250,
+  "amount": 3625,
+  "fees": {
+    "gst": 108.75,
+    "platformFee": 0,
+    "deliveryFee": 0
+  },
+  "transactionId": "GPAY_DG_20250120_1435",
+  "upiTransactionId": "402512345678",
+  "currentHoldings": 5.5,
+  "physicalDelivery": {
+    "requested": false
+  },
+  "statementImage": "/storage/statements/gpay_20250120.jpg",
+  "extractedBy": "manual",
+  "notes": "Regular monthly purchase"
+}

@@ -1,0 +1,51 @@
+{
+  "id": "PG_20250115_001",
+  "date": "2025-01-15",
+  "vendor": {
+    "name": "Tanishq",
+    "branch": "Phoenix Market City, Chennai",
+    "billNumber": "TNQ/CHN/2025/00123",
+    "gstin": "33AAACT2727Q1ZV"
+  },
+  "items": [
+    {
+      "type": "necklace",
+      "description": "22K Gold Necklace with Ruby Stones",
+      "weight": {
+        "gross": 25.5,
+        "net": 24.2,
+        "stone": 1.3
+      },
+      "purity": {
+        "karat": 22,
+        "fineness": 916
+      },
+      "rate": 6800,
+      "goldValue": 164560,
+      "makingCharge": {
+        "amount": 12100,
+        "type": "flat"
+      },
+      "wastage": {
+        "percentage": 8,
+        "amount": 13164.80
+      },
+      "stoneCharges": 5000,
+      "otherCharges": 0
+    }
+  ],
+  "totalAmount": {
+    "subtotal": 194824.80,
+    "gst": {
+      "cgst": 2922.37,
+      "sgst": 2922.37,
+      "total": 5844.74
+    },
+    "roundOff": -0.54,
+    "finalAmount": 200669
+  },
+  "paymentMethod": "card",
+  "billImage": "/storage/bills/tanishq_20250115.jpg",
+  "extractedBy": "ocr",
+  "notes": "Anniversary gift"
+}

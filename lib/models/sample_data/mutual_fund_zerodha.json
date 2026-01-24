@@ -1,0 +1,24 @@
+{
+  "id": "MF_20250110_001",
+  "date": "2025-01-10",
+  "platform": "zerodha",
+  "fundName": "HDFC Top 100 Fund - Direct Plan - Growth",
+  "fundCode": "INF179K01997",
+  "amc": "HDFC Asset Management Company",
+  "category": "equity",
+  "transactionType": "sip",
+  "units": 12.458,
+  "nav": 802.35,
+  "amount": 10000,
+  "folioNumber": "12345678/90",
+  "orderNumber": "ZER123456789",
+  "paymentMethod": "auto_debit",
+  "sipDetails": {
+    "sipId": "SIP_HDFC_2024_001",
+    "installmentNumber": 13,
+    "frequency": "monthly"
+  },
+  "statementImage": "/storage/statements/zerodha_20250110.jpg",
+  "extractedBy": "ocr",
+  "notes": "Monthly SIP - 13th installment"
+}

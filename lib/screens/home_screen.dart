@@ -71,8 +71,28 @@ class _HomeScreenState extends State<HomeScreen> {
               
               _buildCategoryCard(
                 'Physical Gold',
-                Icons.diamond,
+                Icons.star,
                 AppTheme.physicalGoldColor,
+                '₹0',
+                '0%',
+                true,
+              ),
+              const SizedBox(height: 12),
+              
+              _buildCategoryCard(
+                'Diamond Jewellery',
+                Icons.diamond,
+                AppTheme.diamondColor,
+                '₹0',
+                '0%',
+                true,
+              ),
+              const SizedBox(height: 12),
+              
+              _buildCategoryCard(
+                'Precious Metals',
+                Icons.currency_exchange,
+                AppTheme.preciousMetalsColor,
                 '₹0',
                 '0%',
                 true,
@@ -342,13 +362,36 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.diamond, color: AppTheme.physicalGoldColor),
+              leading: Icon(Icons.star, color: AppTheme.physicalGoldColor),
               title: const Text('Physical Gold'),
               onTap: () {
                 Navigator.pop(context);
                 // TODO: Navigate to Add Physical Gold screen
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Add Physical Gold - Coming soon!')),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.diamond, color: AppTheme.diamondColor),
+              title: const Text('Diamond Jewellery'),
+              onTap: () {
+                Navigator.pop(context);
+                // TODO: Navigate to Add Diamond Jewellery screen
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Add Diamond Jewellery - Coming soon!')),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.currency_exchange, color: AppTheme.preciousMetalsColor),
+              title: const Text('Precious Metals'),
+              subtitle: const Text('Platinum, silver, copper'),
+              onTap: () {
+                Navigator.pop(context);
+                // TODO: Navigate to Add Precious Metals screen
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Add Precious Metals - Coming soon!')),
                 );
               },
             ),

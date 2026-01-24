@@ -1,0 +1,71 @@
+{
+  "id": "PM_20250120_001",
+  "date": "2025-01-20",
+  "vendor": {
+    "name": "Tanishq",
+    "branch": "Anna Nagar, Chennai",
+    "billNumber": "TNQ/CHN/AN/2025/00890",
+    "gstin": "33AAACT2727Q1ZV"
+  },
+  "items": [
+    {
+      "type": "chain",
+      "description": "Platinum Chain - Box Design",
+      "metalType": "platinum",
+      "weight": {
+        "gross": 25.5,
+        "net": 25.5,
+        "stone": 0
+      },
+      "purity": {
+        "platinumPurity": "PT950",
+        "fineness": 950,
+        "description": "Pure Platinum 95%"
+      },
+      "rate": 3200,
+      "metalValue": 81600,
+      "makingCharge": {
+        "amount": 18000,
+        "type": "flat"
+      },
+      "wastage": {
+        "percentage": 0,
+        "amount": 0
+      },
+      "stoneCharges": 0,
+      "hallmarkDetails": {
+        "isHallmarked": true,
+        "hallmarkAgency": "BIS",
+        "hallmarkNumber": "BIS-PT-2025-890"
+      },
+      "designDetails": {
+        "finish": "polished",
+        "style": "Box Chain"
+      },
+      "otherCharges": 500
+    }
+  ],
+  "totalAmount": {
+    "subtotal": 100100,
+    "gst": {
+      "cgst": 1501.50,
+      "sgst": 1501.50,
+      "total": 3003
+    },
+    "discount": 0,
+    "roundOff": -0.03,
+    "finalAmount": 103103
+  },
+  "paymentMethod": "card",
+  "warrantyDetails": {
+    "hasWarranty": true,
+    "warrantyPeriod": "lifetime",
+    "warrantyNumber": "TNQ-PT-2025-890"
+  },
+  "billImage": "/storage/bills/tanishq_platinum_20250120.jpg",
+  "certificateImages": [
+    "/storage/certificates/bis_pt_2025_890.pdf"
+  ],
+  "extractedBy": "ocr",
+  "notes": "Pure platinum chain for daily wear"
+}

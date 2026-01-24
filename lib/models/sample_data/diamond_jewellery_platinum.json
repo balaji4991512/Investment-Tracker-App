@@ -1,0 +1,104 @@
+{
+  "id": "DJ_20250105_003",
+  "date": "2025-01-05",
+  "vendor": {
+    "name": "Malabar Gold & Diamonds",
+    "branch": "T Nagar, Chennai",
+    "billNumber": "MGL/CHN/TN/2025/0089",
+    "gstin": "33AABCM8765N1Z3"
+  },
+  "items": [
+    {
+      "type": "pendant",
+      "description": "Platinum Diamond Pendant with Chain",
+      "metalDetails": {
+        "metalType": "platinum",
+        "weight": {
+          "gross": 8.5,
+          "net": 7.8,
+          "diamond": 0.6,
+          "stone": 0.1
+        },
+        "purity": {
+          "fineness": 950,
+          "platinumPurity": "PT950"
+        },
+        "rate": 3200,
+        "metalValue": 24960
+      },
+      "diamondDetails": {
+        "totalCarats": 0.65,
+        "numberOfDiamonds": 15,
+        "diamonds": [
+          {
+            "carats": 0.35,
+            "cut": "princess",
+            "clarity": "VVS2",
+            "color": "E",
+            "shape": "Princess Cut",
+            "certificateNumber": "GIA2187654321",
+            "certificateAgency": "GIA"
+          },
+          {
+            "carats": 0.30,
+            "cut": "round",
+            "clarity": "VS1",
+            "color": "F",
+            "shape": "Round Brilliant",
+            "certificateNumber": "",
+            "certificateAgency": "none"
+          }
+        ],
+        "diamondRate": 480000,
+        "diamondValue": 312000
+      },
+      "otherStones": [
+        {
+          "type": "sapphire",
+          "weight": 0.1,
+          "quantity": 2,
+          "value": 3000
+        }
+      ],
+      "makingCharge": {
+        "amount": 22000,
+        "type": "flat"
+      },
+      "wastage": {
+        "percentage": 0,
+        "amount": 0
+      },
+      "settingCharges": 12000,
+      "certificationCharges": 2000,
+      "otherCharges": 1000
+    }
+  ],
+  "totalAmount": {
+    "subtotal": 376960,
+    "gst": {
+      "cgst": 5654.40,
+      "sgst": 5654.40,
+      "total": 11308.80
+    },
+    "discount": 0,
+    "roundOff": -0.80,
+    "finalAmount": 388268
+  },
+  "paymentMethod": "emi",
+  "emiDetails": {
+    "tenure": 6,
+    "monthlyAmount": 64711.33,
+    "interestRate": 0
+  },
+  "warrantyDetails": {
+    "hasWarranty": true,
+    "warrantyPeriod": "lifetime",
+    "warrantyNumber": "MGL-PT-2025-0089"
+  },
+  "billImage": "/storage/bills/malabar_platinum_20250105.jpg",
+  "certificateImages": [
+    "/storage/certificates/gia_2187654321.pdf"
+  ],
+  "extractedBy": "ocr",
+  "notes": "Platinum pendant with GIA certified center diamond - 0% EMI for 6 months"
+}

@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Digital Gold Investment",
+  "description": "Universal schema for digital gold purchases/sales",
+  "type": "object",
+  "required": ["id", "date", "platform", "transactionType", "weight", "rate", "amount"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique transaction ID"
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Transaction date and time"
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["google_pay", "phonepe", "paytm", "amazon", "mmtc_pamp", "augmont", "safegold", "other"],
+      "description": "Platform used for purchase"
+    },
+    "provider": {
+      "type": "string",
+      "enum": ["mmtc_pamp", "augmont", "safegold"],
+      "description": "Underlying gold provider"
+    },
+    "transactionType": {
+      "type": "string",
+      "enum": ["buy", "sell", "gift_received", "gift_sent"],
+      "description": "Type of transaction"
+    },
+    "weight": {
+      "type": "number",
+      "description": "Gold weight in grams"
+    },
+    "purity": {
+      "type": "number",
+      "enum": [24],
+      "description": "Digital gold is always 24K/999 purity"
+    },
+    "rate": {
+      "type": "number",
+      "description": "Gold rate per gram at time of transaction"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Transaction amount in rupees"
+    },
+    "fees": {
+      "type": "object",
+      "properties": {
+        "gst": {
+          "type": "number",
+          "description": "GST on transaction"
+        },
+        "platformFee": {
+          "type": "number",
+          "description": "Platform charges"
+        },
+        "deliveryFee": {
+          "type": "number",
+          "description": "If physical delivery requested"
+        }
+      }
+    },
+    "transactionId": {
+      "type": "string",
+      "description": "Platform transaction reference"
+    },
+    "upiTransactionId": {
+      "type": "string",
+      "description": "UPI reference number if paid via UPI"
+    },
+    "currentHoldings": {
+      "type": "number",
+      "description": "Total holdings after this transaction (in grams)"
+    },
+    "physicalDelivery": {
+      "type": "object",
+      "description": "If user requested physical delivery",
+      "properties": {
+        "requested": {
+          "type": "boolean",
+          "description": "Whether physical delivery requested"
+        },
+        "requestDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "deliveredDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "trackingNumber": {
+          "type": "string"
+        }
+      }
+    },
+    "statementImage": {
+      "type": "string",
+      "description": "Path to transaction screenshot"
+    },
+    "extractedBy": {
+      "type": "string",
+      "enum": ["ocr", "manual", "voice"],
+      "description": "How data was captured"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    }
+  }
+}

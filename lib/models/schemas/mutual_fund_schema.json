@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Mutual Fund Investment",
+  "description": "Universal schema for mutual fund purchases/redemptions",
+  "type": "object",
+  "required": ["id", "date", "platform", "fundName", "transactionType", "units", "nav", "amount"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique transaction ID"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Transaction date (YYYY-MM-DD)"
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["zerodha", "groww", "paytm_money", "et_money", "kuvera", "coin_dcb", "direct", "other"],
+      "description": "Platform used for investment"
+    },
+    "fundName": {
+      "type": "string",
+      "description": "Full mutual fund name"
+    },
+    "fundCode": {
+      "type": "string",
+      "description": "Fund code/ISIN"
+    },
+    "amc": {
+      "type": "string",
+      "description": "Asset Management Company (HDFC, ICICI, etc.)"
+    },
+    "category": {
+      "type": "string",
+      "enum": ["equity", "debt", "hybrid", "index", "elss", "liquid", "other"],
+      "description": "Fund category"
+    },
+    "transactionType": {
+      "type": "string",
+      "enum": ["purchase", "sip", "redemption", "switch_in", "switch_out", "dividend"],
+      "description": "Type of transaction"
+    },
+    "units": {
+      "type": "number",
+      "description": "Number of units purchased/redeemed"
+    },
+    "nav": {
+      "type": "number",
+      "description": "Net Asset Value on transaction date"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Transaction amount"
+    },
+    "folioNumber": {
+      "type": "string",
+      "description": "Folio number"
+    },
+    "orderNumber": {
+      "type": "string",
+      "description": "Order reference number"
+    },
+    "paymentMethod": {
+      "type": "string",
+      "enum": ["upi", "bank_transfer", "netbanking", "auto_debit"],
+      "description": "Payment method"
+    },
+    "sipDetails": {
+      "type": "object",
+      "description": "If this is a SIP transaction",
+      "properties": {
+        "sipId": {
+          "type": "string",
+          "description": "SIP registration ID"
+        },
+        "installmentNumber": {
+          "type": "integer",
+          "description": "Which SIP installment (1, 2, 3...)"
+        },
+        "frequency": {
+          "type": "string",
+          "enum": ["daily", "weekly", "monthly", "quarterly"],
+          "description": "SIP frequency"
+        }
+      }
+    },
+    "statementImage": {
+      "type": "string",
+      "description": "Path to statement screenshot"
+    },
+    "extractedBy": {
+      "type": "string",
+      "enum": ["ocr", "manual", "api", "voice"],
+      "description": "How data was captured"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    }
+  }
+}
