@@ -53,32 +53,7 @@ This document provides a quick reference for all investment types tracked by the
 
 ---
 
-## 3. ⭐ Physical Gold
 
-**What it tracks:**
-- Jewelry (necklace, ring, chain, bracelet, bangle, earrings)
-- Gold coins and bars (22K, 24K)
-- Purchases from Tanishq, Kalyan, Malabar, local jewelers
-
-**Key Data Points:**
-- Gross weight, net weight, stone weight
-- Purity (22K/916, 24K/999)
-- Gold rate per gram
-- Making charges, wastage, stone charges
-- GST breakdown
-- Bill image storage
-
-**Sample Use Cases:**
-- 22K gold necklace from Tanishq (25g, with ruby stones)
-- 24K gold coin from Kalyan (10g, investment)
-- Gold bangle from local jeweler (15g, 22K)
-
-**Schema:** [physical_gold_schema.json](../lib/models/schemas/physical_gold_schema.json)  
-**Samples:**
-- [physical_gold_tanishq.json](../lib/models/sample_data/physical_gold_tanishq.json) - Complex necklace with stones
-- [physical_gold_kalyan.json](../lib/models/sample_data/physical_gold_kalyan.json) - Simple gold coin
-
----
 
 ## 4. 💎 Diamond Jewellery
 

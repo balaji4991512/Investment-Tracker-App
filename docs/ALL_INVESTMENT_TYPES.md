@@ -12,12 +12,7 @@ Financial investment via platforms like Zerodha, Groww
 **Track:** Weight, rate, platform  
 **Complexity:** ⭐ (Very Simple)
 
-### 3. ⭐ **Physical Gold** 
-Jewelry, coins, bars from jewelers  
-**Track:** Weight, purity (22K/24K), making charges, wastage  
-**Complexity:** ⭐⭐⭐ (Moderate)
-
-### 4. 💎 **Diamond Jewellery** 
+### 3. 💎 **Diamond Jewellery** 
 Diamonds with gold/platinum base  
 **Track:** Metal + Diamond (4Cs) + certifications  
 **Complexity:** ⭐⭐⭐⭐⭐ (Very Complex)
@@ -66,7 +61,7 @@ Are you investing in...?
 |----------|-------------|--------------|
 | **Mutual Funds** | `mutual_fund_schema.json` | `mutual_fund_zerodha.json` |
 | **Digital Gold** | `digital_gold_schema.json` | `digital_gold_gpay.json` |
-| **Physical Gold** | `physical_gold_schema.json` | `physical_gold_tanishq.json`<br>`physical_gold_kalyan.json` |
+
 | **Diamond Jewellery** | `diamond_jewellery_schema.json` | `diamond_jewellery_tanishq.json`<br>`diamond_jewellery_caratLane.json`<br>`diamond_jewellery_platinum.json` |
 | **Precious Metals** | `precious_metals_jewellery_schema.json` | `platinum_chain_tanishq.json`<br>`silver_anklet_malabar.json`<br>`copper_utensils.json`<br>`silver_bangles_kalyan.json` |
 
@@ -79,15 +74,14 @@ Are you investing in...?
 | Category | Gold Type | Diamond | Typical Use | Example |
 |----------|-----------|---------|-------------|---------|
 | **Digital Gold** | 24K pure | No | Investment | 0.5g on Google Pay |
-| **Physical Gold** | 22K/24K | No | Jewelry + Investment | Gold necklace 25g |
 | **Diamond Jewellery** | 18K/22K | Yes | High-end jewelry | Diamond ring ₹2.8L |
 
 ### Metal Categories
 
 | Category | Metals | Typical Purity | Example |
 |----------|--------|----------------|---------|
-| **Physical Gold** | Gold only | 22K (916), 24K (999) | Gold coin, chain |
 | **Diamond Jewellery** | Gold/Platinum/White Gold | 18K (750), PT950 | Diamond earrings |
+| **Precious Metals** | Platinum/Silver/Copper | PT950, 925 Sterling, 99.9% | Silver anklet, platinum chain |
 | **Precious Metals** | Platinum/Silver/Copper | PT950, 925 Sterling, 99.9% | Silver anklet, platinum chain |
 
 ---
@@ -102,7 +96,7 @@ Current Value = Current Rate × Weight
 ```
 
 ### Moderate (Adjusted Return)
-Used for: Physical Gold, Diamond Jewellery
+Used for: Diamond Jewellery
 ```
 Consideration:
 - Making charges NOT recovered
@@ -166,11 +160,11 @@ digital_gold_investments:
 - platform
 - ...
 
-physical_gold_investments:
+diamond_jewellery_investments:
 - investment_id (FK)
 - items (JSON)
-- net_weight
-- purity
+ - metal_details (JSON)
+ - diamond_details (JSON)
 - ...
 
 diamond_jewellery_investments:

@@ -1,0 +1,474 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Diamond Jewellery Purchase",
+  "description": "Universal schema for diamond jewelry with mixed metals (gold, platinum, diamonds, stones)",
+  "type": "object",
+  "required": ["id", "date", "vendor", "items", "totalAmount"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique transaction ID"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Purchase date (YYYY-MM-DD)"
+    },
+    "time": {
+      "type": "string",
+      "description": "Purchase time (HH:MM:SS) - optional"
+    },
+    "vendor": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Shop/company name (Tanishq, Kalyan, CaratLane, etc.)"
+        },
+        "branch": {
+          "type": "string",
+          "description": "Branch location"
+        },
+        "billNumber": {
+          "type": "string",
+          "description": "Invoice/Bill number"
+        },
+        "gstin": {
+          "type": "string",
+          "description": "GST number"
+        },
+        "stateCode": {
+          "type": "string",
+          "description": "State code (e.g., 33 for Tamil Nadu)"
+        },
+        "pan": {
+          "type": "string",
+          "description": "PAN number - optional"
+        },
+        "cin": {
+          "type": "string",
+          "description": "CIN number - optional"
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "description": "List of diamond jewelry items purchased",
+      "items
+          "productCode": {
+            "type": "string",
+            "description": "Product SKU/code (vendor-specific)"
+          },
+          "hsnCode": {
+            "type": "string",
+            "description": "HSN/SAC tax code"
+          },
+          "quantity": {
+            "type": "integer",
+            "description": "Number of pieces",
+            "default": 1
+          },": {
+        "type": "object",
+        "required": ["type", "metalDetails", "diamondDetails"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["ring", "necklace", "pendant", "earrings", "bracelet", "bangle", "nose_pin", "mangalsutra", "other"],
+            "description": "Type of jewelry"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description from bill"
+          },
+          "metalDetails": {
+            "type": "object",
+            "description": "Base metal information (gold, platinum, etc.)",
+            "required": ["metalType", "weight", "purity"],
+            "properties": {
+              "metalType": {
+                "type": "string",
+                "enum": ["gold", "platinum", "white_gold", "rose_gold", "mixed"],
+                "description": "Type of base metal"
+              },
+              "weight": {
+                "type": "object",
+                "required": ["gross", "net"],
+                "properties": {
+                  "gross": {
+                    "type": "number",
+                    "description": "Gross weight in grams (includes diamonds & stones)"
+                  },
+                  "net": {
+                    "type": "number",
+                    "description": "Net metal weight in grams"
+                  },
+                  "diamond": {
+                    "type": "number",
+                    "description": "Total diamond weight in carats"
+                  },
+                  "stone": {
+                    "type": "number",
+                    "description": "Other stone weight in grams"
+                  }
+                }
+              },
+              "purity": {
+                "type": "object",
+                "properties": {
+                  "karat": {
+                    "type": "number",
+                    "enum": [18, 22, 24],
+                    "description": "Gold purity (18K, 22K, 24K)"
+                  },
+                  "fineness": {
+                    "type": "number",
+                    "description": "Purity in fineness (e.g., 750 for 18K, 950 for platinum)"
+                  },
+                  "platinumPurity": {
+                    "type": "string",
+                    "enum": ["PT950", "PT900", "PT850"],
+                    "description": "Platinum purity if applicable"
+                  }
+                }
+              },
+              "rate": {
+                "type": "number",
+                "description": "Metal rate per gram on purchase date"
+              },
+              "metalValue": {
+                "type": "number",
+                "description": "Net weight × Rate"
+              }
+            }
+          },
+          "diamondDetails": {
+            "type": "object",
+            "description": "Diamond specifications",
+            "required": ["totalCarats"],
+            "properties": {
+              "totalCarats": {
+                "type": "number",
+                "description": "Total diamond weight in carats"
+              },
+              "numberOfDiamonds": {
+                "type": "integer",
+                "description": "Number of diamond pieces"
+              },
+              "diamonds": {
+                "type": "array",
+                "description": "Individual diamond specifications",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "carats": {
+                      "type": "number",
+                      "description": "Weight in carats"
+                    },
+                    "cut": {
+                      "type": "string",
+                      "enum": ["round", "princess", "emerald", "cushion", "oval", "pear", "marquise", "asscher", "radiant", "heart", "other"],
+                      "description": "Diamond cut type"
+                    },
+                    "clarity": {
+                      "type": "string",
+                      "enum": ["FL", "IF", "VVS1", "VVS2", "VS1", "VS2", "SI1", "SI2", "I1", "I2", "I3"],
+                      "description": "Diamond clarity grade"
+                    },
+                    "color": {
+                      "type": "string",
+                      "enum": ["D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"],
+                      "description": "Diamond color grade (D is colorless)"
+                    },
+                    "shape": {
+                      "type": "string",
+                      "description": "Diamond shape"
+                    },
+                    "certificateNumber": {
+                      "type": "string",
+                      "description": "GIA/IGI certificate number"
+                    },
+                    "certificateAgency": {
+                      "type": "string",
+                      "enum": ["GIA", "IGI", "HRD", "AGS", "EGL", "none"],
+                      "description": "Certification agency"
+                    }
+                  }
+                }
+              },
+              "diamondRate": {
+                "type": "number",
+                "description": "Price per carat"
+              },
+              "diamondValue": {
+                "type": "number",
+                "description": "Total diamond cost"
+              }
+            }
+          },
+          "otherStones": {
+            "type": "array",
+            "description": "Other precious/semi-precious stones",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["ruby", "emerald", "sapphire", "pearl", "topaz", "amethyst", "other"],
+                  "description": "Type of stone"
+                },
+                "weight": {
+                  "type": "number",
+                  "description": "Weight in carats or grams"
+                },
+                "quantity": {
+                  "type": "integer",
+                  "description": "Number of stones"
+                },
+                "value": {
+                  "type": "number",
+                  "description": "Cost of these stones"
+                }
+              }
+            }
+          },
+          "makingCharge": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "number",
+                "description": "Making/Labour charges"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["flat", "percentage", "per_gram"],
+                "description": "How making charge is calculated"
+              }
+            }
+          },
+          "wastage": {
+            "type": "object",
+            "properties": {
+              "percentage": {
+                "type": "number",
+                "description": "Wastage percentage on metal"
+              },
+              "amount": {
+                "type": "number",
+                "description": "Wastage amount in rupees"
+              }
+           ,
+          "hallmarkCharges": {
+            "type": "number",
+            "description": "BIS hallmark charges (typically ₹45)"
+          },
+          "grossProductPrice": {
+            "type": "number",
+            "description": "Total price before discounts"
+          } }
+          },
+          "settingCharges": {
+            "type": "number",
+            "description": "Diamond setting charges"
+          },
+          "certificationCharges": {
+            "type": "number",
+            "description": "Certificate charges"
+          },
+          "otherCharges": {
+            "type": finalAmount"],
+      "properties": {
+        "subtotal": {
+          "type": "number",
+          "description": "Total before discounts"
+        },
+        "discounts": {
+          "type": "array",
+          "description": "Multiple discount types",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["strike_through", "coupon", "product_discount", "cash", "loyalty_points", "other"],
+                "description": "Type of discount"
+              },
+              "amount": {
+                "type": "number",
+                "description": "Discount amount"
+              },
+              "description": {
+                "type": "string",
+                "description": "Discount description"
+              }
+            }
+          }
+        },
+        "taxableValue": {
+          "type": "number",
+          "description": "Amount after discounts, before GST"
+        },
+        "gst": {
+          "type": "object",
+          "properties": {
+            "cgst": {
+              "type": "number",
+              "description": "CGST amount"
+            },
+            "sgst": {
+              "type": "number",
+              "description": "SGST amount"
+            },
+            "igst": {
+              "type": "number",
+              "description": "IGST amount (interstate)"
+            },
+            "rate": {
+              "type": "number",
+              "description": "GST rate percentage (typically 3%)"
+            },
+            "total": {
+              "type": "number",
+              "description": "Total GST"
+            }
+          }s": {
+      "type": "array",
+      "description": "Payment details (supports split payments)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": ["cash", "credit_card", "debit_card", "upi", "bank_transfer", "voucher", "loyalty_card", "other"],
+            "description": "Payment method"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Amount paid via this method"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Transaction reference / voucher number"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Payment date if different from purchase"
+          }
+        }
+      }
+    },
+    "loyaltyId": {
+      "type": "string",
+      "description": "Loyalty program ID (Encircle ID, Profile ID, etc.)
+          "description": "Tax Collected at Source (high-value items)
+     marketRates": {
+      "type": "object",
+      "description": "Market rates on purchase date (reference)",
+      "properties": {
+        "gold24K": {"type": "number"},
+        "gold22K": {"type": "number"},
+        "gold18K": {"type": "number"},
+        "gold14K": {"type": "number"},
+        "platinum95": {"type": "number"}
+      }
+    },
+    "         "type": "number",
+              "description": "Total GST (CGST + SGST)"
+            }
+          }
+        },
+        "discount": {
+          "type": "number",
+          "description": "Any discount applied"
+        },
+        "roundOff": {
+          "type": "number",
+          "description": "Round off adjustment"
+        },
+        "finalAmount": {
+          "type": "number",
+          "description": "Total amount paid"
+        }
+      }
+    },
+    "exchangeDetails": {
+      "type": "object",
+      "description": "If old jewelry was exchanged",
+      "properties": {
+        "oldItemDescription": {
+          "type": "string",
+          "description": "Description of exchanged item"
+        },
+        "oldItemWeight": {
+          "type": "number",
+          "description": "Weight of exchanged item"
+        },
+        "exchangeValue": {
+          "type": "number",
+          "description": "Value credited for old item"
+        }
+      }
+    },
+    "paymentMethod": {
+      "type": "string",
+      "enum": ["cash", "card", "upi", "bank_transfer", "emi", "mixed"],
+      "description": "How payment was made"
+    },
+    "emiDetails": {
+      "type": "object",
+      "description": "If purchased on EMI",
+      "properties": {
+        "tenure": {
+          "type": "integer",
+          "description": "Number of months"
+        },
+        "monthlyAmount": {
+          "type": "number",
+          "description": "EMI amount per month"
+        },
+        "interestRate": {
+          "type": "number",
+          "description": "Interest rate percentage"
+        }
+      }
+    },
+    "warrantyDetails": {
+      "type": "object",
+      "properties": {
+        "hasWarranty": {
+          "type": "boolean",
+          "description": "Whether warranty is provided"
+        },
+        "warrantyPeriod": {
+          "type": "string",
+          "description": "Warranty period (e.g., '1 year', 'lifetime')"
+        },
+        "warrantyNumber": {
+          "type": "string",
+          "description": "Warranty card number"
+        }
+      }
+    },
+    "billImage": {
+      "type": "string",
+      "description": "Path to scanned bill image"
+    },
+    "certificateImages": {
+      "type": "array",
+      "description": "Paths to diamond certificates",
+      "items": {
+        "type": "string"
+      }
+    },
+    "extractedBy": {
+      "type": "string",
+      "enum": ["ocr", "manual", "voice"],
+      "description": "How data was captured"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    }
+  }
+}
