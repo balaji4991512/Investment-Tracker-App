@@ -639,8 +639,8 @@ function App() {
                 <div className="stat-value">₹{totalInvested.toLocaleString('en-IN')}</div>
               </div>
               <div className="stat-card">
-                <div className="stat-label">Current gold value</div>
-                <div className="stat-value">₹{Math.round(currentGoldValue).toLocaleString('en-IN')}</div>
+                <div className="stat-label">Current investment value</div>
+                <div className="stat-value">₹{Math.round(totalCurrentValue).toLocaleString('en-IN')}</div>
               </div>
               <div className="stat-card">
                 <div className="stat-label">Return</div>
@@ -1065,31 +1065,60 @@ function InvestmentTable({
 
   const computeReturn = (inv: SavedInvestment) => {
     if (!goldToday || !goldToday.inr_per_gram) return null
-    if (inv.category !== 'gold_jewellery') return null
     
     const meta = inv.metadata ?? {}
     
-    // Get purity from stored field or metadata
-    const purity = inv.purity_karat ?? (typeof meta.goldPurity === 'string' ? parseInt(meta.goldPurity.replace(/[^0-9]/g, ''), 10) : null) ?? 24
-    
-    // Get weight from stored field or metadata
-    const weight = inv.weight_grams ?? (typeof meta.netMetalWeight === 'number' ? meta.netMetalWeight : 0) ?? 0
-    
-    // Get rate for purity, fallback to 24K
-    const rate = goldToday.inr_per_gram[String(purity)] ?? goldToday.inr_per_gram['24']
-    
-    // Calculate current value
-    const currentValue = rate * weight
-    const invested = inv.total_amount ?? 0
-    const retAmt = currentValue - invested
-    const retPct = invested > 0 ? (retAmt / invested) * 100 : 0
-    
-    // Log for debugging
-    if (weight === 0 || !rate) {
-      console.warn(`[computeReturn] ${inv.name}: weight=${weight}, purity=${purity}, rate=${rate}`)
+    // GOLD JEWELLERY: Current Value = Net Metal Weight × Gold Rate
+    if (inv.category === 'gold_jewellery') {
+      const purity = inv.purity_karat ?? (typeof meta.goldPurity === 'string' ? parseInt(meta.goldPurity.replace(/[^0-9]/g, ''), 10) : null) ?? 24
+      const weight = inv.weight_grams ?? (typeof meta.netMetalWeight === 'number' ? meta.netMetalWeight : 0) ?? 0
+      const rate = goldToday.inr_per_gram[String(purity)] ?? goldToday.inr_per_gram['24']
+      
+      const currentValue = rate * weight
+      const invested = inv.total_amount ?? 0
+      const retAmt = currentValue - invested
+      const retPct = invested > 0 ? (retAmt / invested) * 100 : 0
+      
+      if (weight === 0 || !rate) {
+        console.warn(`[computeReturn] Gold ${inv.name}: weight=${weight}, purity=${purity}, rate=${rate}`)
+      }
+      
+      return { currentValue, retAmt, retPct }
     }
     
-    return { currentValue, retAmt, retPct }
+    // DIAMOND JEWELLERY: Current Value = Gold Value + Diamond/Stone Value
+    if (inv.category === 'diamond_jewellery') {
+      // Calculate gold component: Net Metal Weight × Gold Rate
+      const purity = inv.purity_karat ?? (typeof meta.goldPurity === 'string' ? parseInt(meta.goldPurity.replace(/[^0-9]/g, ''), 10) : null) ?? 24
+      const weight = inv.weight_grams ?? (typeof meta.netMetalWeight === 'number' ? meta.netMetalWeight : 0) ?? 0
+      const rate = goldToday.inr_per_gram[String(purity)] ?? goldToday.inr_per_gram['24']
+      
+      const goldValue = rate * weight
+      
+      // Calculate diamond/stone value (extracted or computed)
+      let diamondValue = 0
+      if (typeof meta.stoneCost === 'number' && meta.stoneCost > 0) {
+        // Direct extraction
+        diamondValue = meta.stoneCost
+      } else if (typeof meta.grossPrice === 'number' && typeof meta.netMetalWeight === 'number' && typeof meta.goldRatePerGram === 'number') {
+        // Computed: Gross Price - (Weight × Rate)
+        const grossPrice = meta.grossPrice
+        const netMetalPrice = meta.netMetalWeight * meta.goldRatePerGram
+        diamondValue = Math.max(0, grossPrice - netMetalPrice)
+      }
+      
+      // Total current value
+      const currentValue = goldValue + diamondValue
+      const invested = inv.total_amount ?? 0
+      const retAmt = currentValue - invested
+      const retPct = invested > 0 ? (retAmt / invested) * 100 : 0
+      
+      console.log(`[computeReturn] Diamond ${inv.name}: goldValue=${goldValue}, diamondValue=${diamondValue}, total=${currentValue}`)
+      
+      return { currentValue, retAmt, retPct }
+    }
+    
+    return null
   }
 
   return (
