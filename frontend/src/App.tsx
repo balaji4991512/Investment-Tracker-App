@@ -69,6 +69,7 @@ function App() {
   const [makingChargesPerGram, setMakingChargesPerGram] = useState('')
   const [stoneCost, setStoneCost] = useState('')
   const [grossPrice, setGrossPrice] = useState('')
+  const [stoneValue, setStoneValue] = useState('')  // Calculated: Gross Price - Net Metal Price
   const [gsts, setGsts] = useState('')
   const [discounts, setDiscounts] = useState('')
   const [finalPrice, setFinalPrice] = useState('')
@@ -336,6 +337,32 @@ function App() {
   const closeDrawer = () => {
     setIsDrawerOpen(false)
   }
+
+  // Calculate Stone/Diamond Value = Gross Price - Net Metal Price
+  const calculateStoneValue = () => {
+    const gross = parseFloat(grossPrice) || 0
+    const metalWeight = parseFloat(netMetalWeight) || 0
+    const rate = parseFloat(goldPrice) || 0
+    
+    if (gross > 0 && metalWeight > 0 && rate > 0) {
+      const netMetalPrice = metalWeight * rate
+      const stoneVal = gross - netMetalPrice
+      setStoneValue(stoneVal > 0 ? String(stoneVal.toFixed(2)) : '0')
+      return stoneVal
+    } else if (parseFloat(stoneCost) > 0) {
+      // If stone cost is directly available, use it
+      setStoneValue(stoneCost)
+      return parseFloat(stoneCost)
+    } else {
+      setStoneValue('')
+      return 0
+    }
+  }
+
+  // Recalculate stone value whenever these fields change
+  useEffect(() => {
+    calculateStoneValue()
+  }, [grossPrice, netMetalWeight, goldPrice, stoneCost])
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -850,6 +877,19 @@ function App() {
                     <div className="review-field">
                       <label>Gross Price (₹)</label>
                       <input className="field-input" value={grossPrice} onChange={(e) => setGrossPrice(e.target.value)} />
+                    </div>
+                    <div className="review-field">
+                      <label>Stone/Diamond Value (₹)</label>
+                      <input 
+                        className="field-input" 
+                        value={stoneValue} 
+                        readOnly 
+                        title="Calculated as: Gross Price - (Net Metal Weight × Gold Rate)"
+                        placeholder="Auto-calculated"
+                      />
+                      <small style={{ fontSize: '10px', color: 'rgba(15, 23, 42, 0.6)', marginTop: '2px' }}>
+                        Auto-calculated: Gross Price − (Weight × Rate) or direct Stone Cost
+                      </small>
                     </div>
 
                     {/* Diamond-specific fields */}
