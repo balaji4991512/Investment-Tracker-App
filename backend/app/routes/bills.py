@@ -56,13 +56,15 @@ CRITICAL FIELD ACCURACY RULES:
 4. NO SWAPPING: If goldRatePerGram < makingChargesPerGram, you have the values reversed. Swap them back.
 
 FINAL PRICE AND DISCOUNT EXTRACTION (CRITICAL):
-- finalPrice: Extract the exact amount shown on the invoice as "Total Amount Paid", "Net Invoice Value", "Amount Due", "Bill Total", or similar.
+- finalPrice: Extract the EXACT amount shown on the invoice as "Total Amount Paid", "Net Invoice Value", "Amount Due", "Bill Total", or similar.
   - This is what the customer actually pays (after all taxes and discounts).
   - Look for the FINAL row/section marked as the total/payable amount.
+  - CRITICAL: This is ALWAYS a full number (e.g., 51990, NOT 5199 or 5.199L or 51.99K).
+  - Do NOT divide by 100, 1000, or 10. Do NOT treat as Lakhs (L) or Thousands (K).
+  - Do NOT round or approximate: Use the EXACT integer amount from the invoice.
   - Do NOT recompute: Do NOT add gold cost + stone cost + making charges + GST - discount.
-  - Do NOT approximate: Do NOT estimate based on nearby values.
   - Do NOT override: Do NOT replace with calculated totals.
-  - Extract EXACTLY the number shown on the invoice.
+  - Example: If bill shows "51990", extract 51990 (NOT 5199, NOT 51.99, NOT 519.90).
 - discounts: Extract ONLY if explicitly labeled with "Discount", "Offer", "Scheme Discount", "Product Discount", "Less", or similar.
   - This is the reduction from the original price (product-level or scheme).
   - Do NOT infer: Do NOT calculate as (grossPrice - finalPrice).
@@ -147,13 +149,15 @@ CRITICAL FIELD ACCURACY RULES:
 4. UNIT CONTEXT: Pay attention to units (ct, g, rs/gm, etc.) to confirm field accuracy.
 
 FINAL PRICE AND DISCOUNT EXTRACTION (CRITICAL):
-- finalPrice: Extract the exact amount shown on the invoice as "Total Amount Paid", "Net Invoice Value", "Amount Due", "Bill Total", or similar.
+- finalPrice: Extract the EXACT amount shown on the invoice as "Total Amount Paid", "Net Invoice Value", "Amount Due", "Bill Total", or similar.
   - This is what the customer actually pays (after all taxes and discounts).
   - Look for the FINAL row/section marked as the total/payable amount.
+  - CRITICAL: This is ALWAYS a full number (e.g., 51990, NOT 5199 or 5.199L or 51.99K).
+  - Do NOT divide by 100, 1000, or 10. Do NOT treat as Lakhs (L) or Thousands (K).
+  - Do NOT round or approximate: Use the EXACT integer amount from the invoice.
   - Do NOT recompute: Do NOT add gold cost + diamond cost + making charges + GST - discount.
-  - Do NOT approximate: Do NOT estimate based on nearby values.
   - Do NOT override: Do NOT replace with calculated totals.
-  - Extract EXACTLY the number shown on the invoice.
+  - Example: If bill shows "51990", extract 51990 (NOT 5199, NOT 51.99, NOT 519.90).
 - discounts: Extract ONLY if explicitly labeled with "Discount", "Offer", "Scheme Discount", "Product Discount", "Less", or similar.
   - This is the reduction from the original price (product-level or scheme).
   - Do NOT infer: Do NOT calculate as (grossPrice - finalPrice).
