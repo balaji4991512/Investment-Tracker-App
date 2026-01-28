@@ -185,54 +185,70 @@ function App() {
     }
   }, [activeView])
 
-  // Compute totals
+  // CATEGORY-AGNOSTIC LINE ITEM VALUATION
+  // Computes Current Value for any investment regardless of category
+  const computeLineItemValue = (inv: SavedInvestment): number => {
+    if (!inv || !inv.total_amount) return 0
+    
+    const meta = inv.metadata ?? {}
+    
+    // GOLD JEWELLERY: Current Value = Net Metal Weight × Gold Rate
+    if (inv.category === 'gold_jewellery') {
+      if (!goldToday || !goldToday.inr_per_gram) return 0
+      
+      const purity = inv.purity_karat ?? 24
+      const purityKey = String(purity)
+      const rate = goldToday.inr_per_gram[purityKey] ?? goldToday.inr_per_gram['24']
+      const weight = inv.weight_grams ?? (meta.netMetalWeight ?? 0)
+      
+      if (rate && weight > 0) {
+        return rate * weight
+      }
+      return 0
+    }
+    
+    // DIAMOND JEWELLERY: Current Value = Gold Value + Diamond Value
+    if (inv.category === 'diamond_jewellery') {
+      if (!goldToday || !goldToday.inr_per_gram) return inv.total_amount // Fallback to invested
+      
+      const purity = inv.purity_karat ?? 24
+      const purityKey = String(purity)
+      const rate = goldToday.inr_per_gram[purityKey] ?? goldToday.inr_per_gram['24']
+      const weight = inv.weight_grams ?? (meta.netMetalWeight ?? 0)
+      
+      const goldValue = (rate && weight > 0) ? rate * weight : 0
+      
+      // Diamond value: direct or computed
+      let diamondValue = 0
+      if (typeof meta.stoneCost === 'number' && meta.stoneCost > 0) {
+        diamondValue = meta.stoneCost
+      } else if (typeof meta.grossPrice === 'number' && typeof meta.netMetalWeight === 'number' && typeof meta.goldRatePerGram === 'number') {
+        const grossPrice = meta.grossPrice
+        const netMetalPrice = meta.netMetalWeight * meta.goldRatePerGram
+        diamondValue = Math.max(0, grossPrice - netMetalPrice)
+      }
+      
+      return goldValue + diamondValue
+    }
+    
+    // UNMAPPED CATEGORY: Fallback to invested amount (valuation pending)
+    console.warn(`[computeLineItemValue] Unmapped category "${inv.category}" for ${inv.name}, using invested amount as placeholder`)
+    return inv.total_amount
+  }
+
+  // Compute totals (category-agnostic)
   const totalInvested = investments.reduce((sum, inv) => sum + (inv.total_amount || 0), 0)
+  const totalCurrentValue = investments.reduce((sum, inv) => sum + computeLineItemValue(inv), 0)
+  
+  // Portfolio returns
+  const returnAmount = totalCurrentValue - totalInvested
+  const returnPct = totalInvested > 0 ? (returnAmount / totalInvested) * 100 : 0
+  
+  // Keep category-filtered arrays for sidebar navigation (still useful for filtering views)
   const goldInvestments = investments.filter(inv => inv.category === 'gold_jewellery')
   const diamondInvestments = investments.filter(inv => inv.category === 'diamond_jewellery')
   const goldTotal = goldInvestments.reduce((sum, inv) => sum + (inv.total_amount || 0), 0)
   const diamondTotal = diamondInvestments.reduce((sum, inv) => sum + (inv.total_amount || 0), 0)
-
-  // Calculate current value for gold jewelry (weight × purity-specific rate)
-  const currentGoldValue = (() => {
-    if (!goldToday || !goldToday.inr_per_gram) return 0
-    
-    let total = 0
-    for (const inv of goldInvestments) {
-      // Get purity (default to 24 if not specified)
-      const purity = inv.purity_karat ?? 24
-      const purityKey = String(purity)
-      
-      // Get rate for this purity, fallback to 24K if purity not found
-      const rate = goldToday.inr_per_gram[purityKey] ?? goldToday.inr_per_gram['24']
-      
-      // Get weight - try direct field first, then metadata
-      const weight = inv.weight_grams ?? (inv.metadata?.netMetalWeight ?? 0)
-      
-      // Only add if we have valid rate and weight
-      if (rate && weight > 0) {
-        total += rate * weight
-        console.log(`[currentGoldValue] ${inv.name}: ${weight}g @ ₹${rate}/g = ₹${rate * weight}`)
-      } else {
-        console.warn(`[currentGoldValue] Skipped ${inv.name}: weight=${weight}, rate=${rate}`)
-      }
-    }
-    console.log(`[currentGoldValue] Total: ₹${total}`)
-    return total
-  })()
-
-  // Calculate current value for diamond jewelry (use invested amount as placeholder - diamonds don't have live rates)
-  const currentDiamondValue = (() => {
-    // For diamonds, we use the invested amount as the current value unless a separate diamond rate is available
-    // Since diamonds don't have daily live rates like gold, we keep them at cost basis
-    return diamondTotal
-  })()
-
-  // Total portfolio current value
-  const totalCurrentValue = currentGoldValue + currentDiamondValue
-
-  // Portfolio returns
-  const returnAmount = totalCurrentValue - totalInvested
-  const returnPct = totalInvested > 0 ? (returnAmount / totalInvested) * 100 : 0
 
   // Category-level current values and returns (for future category-level dashboard)
   // const goldReturnAmount = currentGoldValue - goldTotal
