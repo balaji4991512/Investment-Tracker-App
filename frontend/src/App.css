@@ -1,9 +1,22 @@
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
 .app-root {
   width: 100%;
+  height: 100%;
   min-height: 100vh;
   background: linear-gradient(180deg, #f4f7ff 0%, #eef2ff 55%, #eef2ff 100%);
   color: var(--text);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  display: flex;
+  flex-direction: column;
 }
 
 :root {
@@ -25,8 +38,9 @@
   display: grid;
   grid-template-columns: 280px 1fr;
   width: 100%;
-  min-height: 100vh;
-  height: auto;
+  height: 100%;
+  flex: 1;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -139,6 +153,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  height: 100%;
   flex: 1;
   overflow: hidden;
 }
@@ -323,17 +338,27 @@
   border: 1px solid var(--border);
   background: var(--panel);
   box-shadow: var(--shadow);
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .table-wrap {
   width: 100%;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: visible;
+  flex: 1;
+  min-height: 0;
 }
 
 .table {
   width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  white-space: nowrap;
 }
 
 .table thead th {
@@ -347,12 +372,16 @@
   background: var(--panel2);
   position: sticky;
   top: 0;
+  white-space: nowrap;
+  min-width: 100px;
 }
 
 .table tbody td {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
   color: rgba(15, 23, 42, 0.92);
+  white-space: nowrap;
+  min-width: 100px;
 }
 
 .table tbody tr:hover td {
@@ -568,9 +597,11 @@
   padding: 32px 40px 80px;
   position: relative;
   width: 100%;
+  height: 100%;
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  min-width: 0;
 }
 
 .hero {
