@@ -112,6 +112,8 @@ async def gold_history():
         "inr_per_gram_24k": float(row["inr_per_gram_24k"]) if row["inr_per_gram_24k"] else None,
         "inr_per_gram_22k": float(row["inr_per_gram_22k"]) if row["inr_per_gram_22k"] else None,
         "inr_per_gram_18k": float(row["inr_per_gram_18k"]) if row["inr_per_gram_18k"] else None,
+        "inr_per_gram_14k": float(row["inr_per_gram_14k"]) if row["inr_per_gram_14k"] else None,
+        "inr_per_gram_9k": float(row["inr_per_gram_9k"]) if row["inr_per_gram_9k"] else None,
       }
       for row in rows
     ]
