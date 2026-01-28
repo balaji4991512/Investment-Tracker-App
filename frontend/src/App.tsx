@@ -104,11 +104,37 @@ function App() {
         const res = await fetch('http://127.0.0.1:8000/rates/gold/today')
         if (res.ok) {
           const data = await res.json()
-          setGoldToday(data)
-          ;(window as any).__goldTodayRates = data
+          // Verify data has valid inr_per_gram
+          if (data && data.inr_per_gram && Object.keys(data.inr_per_gram).length > 0) {
+            setGoldToday(data)
+            ;(window as any).__goldTodayRates = data
+            console.log('[loadGold] Successfully loaded today\'s rates:', data)
+          } else {
+            console.warn('[loadGold] Today\'s rate data invalid, fetching fallback from history')
+            const fallbackRate = await getFallbackRate()
+            if (fallbackRate) {
+              setGoldToday(fallbackRate)
+              ;(window as any).__goldTodayRates = fallbackRate
+              console.log('[loadGold] Using fallback rate:', fallbackRate)
+            }
+          }
+        } else {
+          console.warn('[loadGold] Failed to fetch today\'s rate, status:', res.status, 'fetching fallback from history')
+          const fallbackRate = await getFallbackRate()
+          if (fallbackRate) {
+            setGoldToday(fallbackRate)
+            ;(window as any).__goldTodayRates = fallbackRate
+            console.log('[loadGold] Using fallback rate:', fallbackRate)
+          }
         }
       } catch (err) {
-        console.error('Failed to load gold rate:', err)
+        console.error('[loadGold] Failed to load gold rate:', err, 'fetching fallback from history')
+        const fallbackRate = await getFallbackRate()
+        if (fallbackRate) {
+          setGoldToday(fallbackRate)
+          ;(window as any).__goldTodayRates = fallbackRate
+          console.log('[loadGold] Using fallback rate:', fallbackRate)
+        }
       }
     }
     loadGold()
@@ -120,10 +146,36 @@ function App() {
       if (res.ok) {
         const data = await res.json()
         setRateHistory(data)
+        console.log('[loadRateHistory] Loaded history with', data.length, 'records')
+        return data
       }
     } catch (err) {
-      console.error('Failed to load rate history:', err)
+      console.error('[loadRateHistory] Failed to load rate history:', err)
     }
+    return []
+  }
+  
+  // Fallback: Use last available rate from history if today's rate not available
+  const getFallbackRate = async () => {
+    console.log('[getFallbackRate] Fetching last available rate...')
+    const history = await loadRateHistory()
+    if (history && history.length > 0) {
+      const lastRate = history[0]  // History is sorted descending by date
+      console.log('[getFallbackRate] Using last available rate from:', lastRate.date)
+      return {
+        date: lastRate.date,
+        inr_per_gram: {
+          '24': lastRate.inr_per_gram_24k,
+          '22': lastRate.inr_per_gram_22k,
+          '18': lastRate.inr_per_gram_18k,
+          '14': lastRate.inr_per_gram_14k,
+          '9': lastRate.inr_per_gram_9k,
+        },
+        source: lastRate.source + ' (Fallback)',
+      }
+    }
+    console.warn('[getFallbackRate] No fallback rate available')
+    return null
   }
 
   useEffect(() => {
