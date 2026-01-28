@@ -61,10 +61,16 @@ CRITICAL FIELD ACCURACY RULES:
    - PLATINUM section: Look for headers like "Platinum Rate", "Platinum (95PT)", "Platinum Price"
    - Do NOT mix rates between sections. Never use a Platinum rate as goldRatePerGram.
    
-2. PURITY-SPECIFIC MAPPING: Once you identify GOLD section:
-   - Extract the rate corresponding to the purity mentioned in the bill (e.g., 14KT, 18KT, 22KT, 24KT)
-   - If bill shows "14KT Gold: 8428", extract 8428 for goldRatePerGram
-   - If bill shows "Platinum: 7793", do NOT use 7793 for goldRatePerGram (it's platinum, not gold)
+2. PURITY-SPECIFIC MAPPING: Once you identify the GOLD purity on the bill:
+   - Look at the product description or "Purity" field to identify which gold purity is being purchased (e.g., 14KT, 18KT, 22KT, 24KT, 9KT)
+   - Find the rate table/section that lists rates for multiple purities (e.g., "24KT/22KT/18KT/14KT/9KT: ₹14406/13205/10805/8428/5402")
+   - Match the BILL'S PURITY with the corresponding rate in the list
+     * If bill is 14KT → extract the 14KT rate (8428 in the example)
+     * If bill is 22KT → extract the 22KT rate (13205 in the example)
+     * If bill is 18KT → extract the 18KT rate (10805 in the example)
+   - Example: Bill says "14KT Gold Ring". Rate table shows "24KT/22KT/18KT/14KT/9KT: ₹14406/13205/10805/8428/5402"
+     * Extract goldRatePerGram = 8428 (the 14KT rate)
+     * NOT 14406 (24KT), NOT 13205 (22KT), NOT 7793 (Platinum)
    
 3. GOLD RATE PER GRAM: Extract ONLY from rows/columns explicitly labeled with "Gold Rate", "Rate/gm", or similar UNDER the GOLD section. This is a 4-5 digit number (e.g., 8428). Do NOT infer from making charges or other values. Do NOT auto-fill based on proximity. Do NOT substitute platinum rates.
 
@@ -175,10 +181,16 @@ CRITICAL FIELD ACCURACY RULES:
    - PLATINUM section: Look for headers like "Platinum Rate", "Platinum (95PT)", "Platinum Price"
    - Do NOT mix rates between sections. Never use a Platinum rate as goldRatePerGram.
    
-3. PURITY-SPECIFIC MAPPING: Once you identify GOLD section:
-   - Extract the rate corresponding to the purity mentioned in the bill (e.g., 14KT, 18KT, 22KT, 24KT)
-   - If bill shows "14KT Gold: 8428", extract 8428 for goldRatePerGram
-   - If bill shows "Platinum: 7793", do NOT use 7793 for goldRatePerGram (it's platinum, not gold)
+3. PURITY-SPECIFIC MAPPING: Once you identify the GOLD purity on the bill:
+   - Look at the product description or "Purity" field to identify which gold purity is being purchased (e.g., 14KT, 18KT, 22KT, 24KT, 9KT)
+   - Find the rate table/section that lists rates for multiple purities (e.g., "24KT/22KT/18KT/14KT/9KT: ₹14406/13205/10805/8428/5402")
+   - Match the BILL'S PURITY with the corresponding rate in the list
+     * If bill is 14KT → extract the 14KT rate (8428 in the example)
+     * If bill is 22KT → extract the 22KT rate (13205 in the example)
+     * If bill is 18KT → extract the 18KT rate (10805 in the example)
+   - Example: Bill says "14KT Gold Ring". Rate table shows "24KT/22KT/18KT/14KT/9KT: ₹14406/13205/10805/8428/5402"
+     * Extract goldRatePerGram = 8428 (the 14KT rate)
+     * NOT 14406 (24KT), NOT 13205 (22KT), NOT 7793 (Platinum)
 
 4. GOLD RATE PER GRAM: Extract from the row/column explicitly labeled "Gold Rate", "Rate/gm", or similar UNDER the GOLD section. Look for the LARGER per-gram value (typically 4-5 digits like 8428). Do NOT use values from making charges rows. Do NOT substitute platinum rates.
 
