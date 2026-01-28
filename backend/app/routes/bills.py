@@ -90,12 +90,18 @@ FINAL PRICE AND DISCOUNT EXTRACTION (CRITICAL):
   - Do NOT recompute: Do NOT add gold cost + stone cost + making charges + GST - discount.
   - Do NOT override: Do NOT replace with calculated totals.
   - Example: If bill shows "51990", extract 51990 (NOT 5199, NOT 51.99, NOT 519.90).
-- discounts: Extract ONLY if explicitly labeled with "Discount", "Offer", "Scheme Discount", "Product Discount", "Less", or similar.
-  - This is the reduction from the original price (product-level or scheme).
-  - Do NOT infer: Do NOT calculate as (grossPrice - finalPrice).
+- discounts: Extract the TOTAL of ALL discount types shown on the bill. Multiple discounts may be listed separately:
+  - Strike-Through Discount (e.g., ₹4706)
+  - Coupon Discount/xCLusive Points (e.g., ₹4765)
+  - Scheme Discount (₹XXX)
+  - Cash Discount (₹0)
+  - Any other discount type labeled as "Discount", "Offer", "Less"
+  - SUM ALL discount amounts shown (ignore zero amounts)
+  - Example: If bill shows "Strike-Through ₹4706" + "Coupon ₹4765" + "Cash ₹0" → discounts = 4706 + 4765 = 9471
+  - Do NOT infer or calculate discounts from price differences. Extract EXACTLY as-is from invoice.
+  - If no discounts shown, set to null.
   - Do NOT derive: Do NOT estimate based on price differences.
-  - Extract the exact discount amount shown on the invoice, or null if not explicitly present.
-  - Examples: "Discount: 500" → 500, "Scheme Discount: 1000" → 1000, "No discount" → null
+  - Examples: Single discount "Discount: 500" → 500; Multiple discounts "₹4706 + ₹4765 + ₹0" → 9471; No discount → null
 
 MULTI-VALUE COLUMN HANDLING:
 When a single column has multiple values on the same row (e.g., "NET STONE WEIGHT" with values "0.159" and "0.032"):
@@ -208,12 +214,18 @@ FINAL PRICE AND DISCOUNT EXTRACTION (CRITICAL):
   - Do NOT recompute: Do NOT add gold cost + diamond cost + making charges + GST - discount.
   - Do NOT override: Do NOT replace with calculated totals.
   - Example: If bill shows "51990", extract 51990 (NOT 5199, NOT 51.99, NOT 519.90).
-- discounts: Extract ONLY if explicitly labeled with "Discount", "Offer", "Scheme Discount", "Product Discount", "Less", or similar.
-  - This is the reduction from the original price (product-level or scheme).
-  - Do NOT infer: Do NOT calculate as (grossPrice - finalPrice).
+- discounts: Extract the TOTAL of ALL discount types shown on the bill. Multiple discounts may be listed separately:
+  - Strike-Through Discount (e.g., ₹4706)
+  - Coupon Discount/xCLusive Points (e.g., ₹4765)
+  - Scheme Discount (₹XXX)
+  - Cash Discount (₹0)
+  - Any other discount type labeled as "Discount", "Offer", "Less"
+  - SUM ALL discount amounts shown (ignore zero amounts)
+  - Example: If bill shows "Strike-Through ₹4706" + "Coupon ₹4765" + "Cash ₹0" → discounts = 4706 + 4765 = 9471
+  - Do NOT infer or calculate discounts from price differences. Extract EXACTLY as-is from invoice.
+  - If no discounts shown, set to null.
   - Do NOT derive: Do NOT estimate based on price differences.
-  - Extract the exact discount amount shown on the invoice, or null if not explicitly present.
-  - Examples: "Discount: 500" → 500, "Scheme Discount: 1000" → 1000, "No discount" → null
+  - Examples: Single discount "Discount: 500" → 500; Multiple discounts "₹4706 + ₹4765 + ₹0" → 9471; No discount → null
 
 MULTI-VALUE COLUMN HANDLING:
 When a single column has multiple values on the same row (e.g., "NET STONE WEIGHT" with values "0.159" and "0.032"):
