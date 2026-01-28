@@ -39,7 +39,13 @@ Return ONLY a single JSON object with EXACTLY these keys:
 
 IMPORTANT field definitions for Indian jewellery bills:
 - productName: The purchased item's name/description (e.g., "Diamond ring", "Gold chain"). Do NOT return generic headings like "Standard Rate of ...".
-- goldRatePerGram: The BASE GOLD RATE per gram (ONLY if explicitly stated on the bill). This is the LARGER 4-5 digit number (typically 6000-10000 Rs/gm in 2024-2025). Look for headers like "Gold Rate", "Rate", "Rate/gm", "Gold Price". This is the market price of gold per gram. Do NOT infer or calculate this from other values. Do NOT use values from making charges rows.
+- goldRatePerGram: The GOLD RATE per gram for the specific purity (ONLY if explicitly stated on the bill under GOLD section). 
+  - This is a 4-5 digit number (typically 6000-10000 Rs/gm in 2024-2025).
+  - Look for headers like "Gold Rate", "Rate", "Rate/gm", "Gold Price" in the GOLD METAL section only.
+  - CRITICAL: If the bill has both GOLD and PLATINUM rate sections, extract ONLY from the GOLD section.
+  - Do NOT substitute platinum rates for gold rates, even if numbers are adjacent or visually similar.
+  - Example: If bill shows "14KT Gold: ₹8428" and "Platinum: ₹7793", extract goldRatePerGram = 8428 (NOT 7793).
+  - This is the market price of gold per gram. Do NOT infer or calculate this from other values. Do NOT use values from making charges rows.
 - makingChargesPerGram: Making/wastage/labor charges PER GRAM. This is a SMALLER 3-4 digit number (typically 500-3000 Rs/gm). Often labeled "Making", "MC", "Wastage", "VA", "MC/gm", "Making Charges". Do NOT confuse with goldRatePerGram.
 - hallmarkCharges: Hallmark assay charges (TOTAL amount, NOT per-gram). Often labeled "HM", "HM Charges", "Hallmark", "Assay". This is separate from making charges.
 - CRITICAL ACCURACY: goldRatePerGram should ALWAYS be larger than makingChargesPerGram. If you extract goldRatePerGram < makingChargesPerGram, you likely swapped them. Correct this.
@@ -50,10 +56,23 @@ IMPORTANT field definitions for Indian jewellery bills:
 - finalPrice: Final amount paid (TOTAL AMOUNT PAID / NET INVOICE VALUE). Extract EXACTLY from the invoice. This is the amount the customer actually pays. Do NOT recompute or derive this from other fields. Do NOT add/subtract components. Extract the explicit final total amount shown on the bill.
 
 CRITICAL FIELD ACCURACY RULES:
-1. GOLD RATE PER GRAM: Extract ONLY from rows/columns explicitly labeled with "Gold Rate", "Rate", "Rate/gm", or similar. This is a 4-5 digit number (e.g., 7510.89). Do NOT infer from making charges or other values. Do NOT auto-fill based on proximity.
-2. HEADER-VALUE ALIGNMENT: Always match extracted values to their EXACT header by position. Do NOT move values between columns.
-3. UNIT CONTEXT: Pay attention to units (Rs/gm, gm, ct, g, etc.) to confirm field accuracy.
-4. NO SWAPPING: If goldRatePerGram < makingChargesPerGram, you have the values reversed. Swap them back.
+1. METAL IDENTIFICATION: First identify the metal type from the bill section/header:
+   - GOLD section: Look for headers like "Gold Rate", "Gold (14KT)", "24K Gold", "22K Gold", "18K Gold", "14K Gold", "Purity"
+   - PLATINUM section: Look for headers like "Platinum Rate", "Platinum (95PT)", "Platinum Price"
+   - Do NOT mix rates between sections. Never use a Platinum rate as goldRatePerGram.
+   
+2. PURITY-SPECIFIC MAPPING: Once you identify GOLD section:
+   - Extract the rate corresponding to the purity mentioned in the bill (e.g., 14KT, 18KT, 22KT, 24KT)
+   - If bill shows "14KT Gold: 8428", extract 8428 for goldRatePerGram
+   - If bill shows "Platinum: 7793", do NOT use 7793 for goldRatePerGram (it's platinum, not gold)
+   
+3. GOLD RATE PER GRAM: Extract ONLY from rows/columns explicitly labeled with "Gold Rate", "Rate/gm", or similar UNDER the GOLD section. This is a 4-5 digit number (e.g., 8428). Do NOT infer from making charges or other values. Do NOT auto-fill based on proximity. Do NOT substitute platinum rates.
+
+4. HEADER-VALUE ALIGNMENT: Always match extracted values to their EXACT header by position. Do NOT move values between columns.
+
+5. UNIT CONTEXT: Pay attention to units (Rs/gm, gm, ct, g, etc.) to confirm field accuracy.
+
+6. NO SWAPPING: If goldRatePerGram < makingChargesPerGram, you have the values reversed. Swap them back.
 
 FINAL PRICE AND DISCOUNT EXTRACTION (CRITICAL):
 - finalPrice: Extract the EXACT amount shown on the invoice as "Total Amount Paid", "Net Invoice Value", "Amount Due", "Bill Total", or similar.
@@ -133,7 +152,13 @@ IMPORTANT field definitions:
 - stoneWeight: Stone/diamond weight in GRAMS (g). This is the SECOND value in multi-value columns like "NET STONE WEIGHT (Carats/Grams)". Example: 0.032 g → stoneWeight = 0.032
 - diamondCertificate: Certificate/report number (e.g., IGI/GIA) if present.
 - stoneCost: Cost of stones/diamonds (often the diamond amount on the bill). If the bill has a separate diamond line-item amount, put it here.
-- goldRatePerGram: The BASE GOLD RATE per gram (ONLY if explicitly stated on the bill). Look for headers like "Gold Rate", "Rate/gm", "Rate", "Gold Price". This is typically a 4-5 digit number (e.g., 7510.89). Do NOT infer or calculate this from other values. Do NOT swap this with making charges.
+- goldRatePerGram: The GOLD RATE per gram for the specific purity (ONLY if explicitly stated on the bill under GOLD section).
+  - This is a 4-5 digit number (typically 6000-10000 Rs/gm).
+  - Look for headers like "Gold Rate", "Rate/gm", "Rate", "Gold Price" in the GOLD METAL section only.
+  - CRITICAL: If the bill has both GOLD and PLATINUM rate sections, extract ONLY from the GOLD section.
+  - Do NOT substitute platinum rates for gold rates, even if numbers are adjacent or visually similar.
+  - Example: If bill shows "14KT Gold: ₹8428" and "Platinum: ₹7793", extract goldRatePerGram = 8428 (NOT 7793).
+  - Do NOT infer or calculate this from other values. Do NOT swap this with making charges.
 - makingChargesPerGram: Making/labor charges PER GRAM. This is typically a 3-4 digit number (e.g., 1234). Do NOT confuse with goldRatePerGram.
 - hallmarkCharges: Hallmark assay charges (TOTAL amount). Only if explicitly present on diamond bills.
 - discounts: Actual discounts or offers applied. Extract ONLY amounts explicitly labeled as "Discount", "Offer", "Less", "Scheme Discount", "Product Discount". Do NOT infer or calculate discounts. Do NOT derive this from price differences. Extract EXACTLY as-is from invoice.
@@ -144,9 +169,22 @@ CRITICAL FIELD ACCURACY RULES:
    - diamondCarat = 0.159 (first value, in carats)
    - stoneWeight = 0.032 (second value, in grams)
    NEVER swap these values.
-2. GOLD RATE PER GRAM: Extract from the row/column explicitly labeled "Gold Rate", "Rate", or "Gold Price". Look for the LARGER per-gram value (typically 4-5 digits like 7510.89). Do NOT use values from making charges rows.
-3. HEADER-VALUE ALIGNMENT: Always match extracted values to their exact header by position. Do NOT move values between columns.
-4. UNIT CONTEXT: Pay attention to units (ct, g, rs/gm, etc.) to confirm field accuracy.
+
+2. METAL IDENTIFICATION: First identify the metal type from the bill section/header:
+   - GOLD section: Look for headers like "Gold Rate", "Gold (14KT)", "24K Gold", "22K Gold", "18K Gold", "14K Gold", "Purity"
+   - PLATINUM section: Look for headers like "Platinum Rate", "Platinum (95PT)", "Platinum Price"
+   - Do NOT mix rates between sections. Never use a Platinum rate as goldRatePerGram.
+   
+3. PURITY-SPECIFIC MAPPING: Once you identify GOLD section:
+   - Extract the rate corresponding to the purity mentioned in the bill (e.g., 14KT, 18KT, 22KT, 24KT)
+   - If bill shows "14KT Gold: 8428", extract 8428 for goldRatePerGram
+   - If bill shows "Platinum: 7793", do NOT use 7793 for goldRatePerGram (it's platinum, not gold)
+
+4. GOLD RATE PER GRAM: Extract from the row/column explicitly labeled "Gold Rate", "Rate/gm", or similar UNDER the GOLD section. Look for the LARGER per-gram value (typically 4-5 digits like 8428). Do NOT use values from making charges rows. Do NOT substitute platinum rates.
+
+5. HEADER-VALUE ALIGNMENT: Always match extracted values to their exact header by position. Do NOT move values between columns.
+
+6. UNIT CONTEXT: Pay attention to units (ct, g, rs/gm, etc.) to confirm field accuracy.
 
 FINAL PRICE AND DISCOUNT EXTRACTION (CRITICAL):
 - finalPrice: Extract the EXACT amount shown on the invoice as "Total Amount Paid", "Net Invoice Value", "Amount Due", "Bill Total", or similar.
