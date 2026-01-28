@@ -854,11 +854,35 @@ type CategoryCardProps = {
 }
 
 function CategoryCard({ title, subtitle, accent, count, total, onClick }: CategoryCardProps) {
+  const accentColor = accent === 'gold' ? 'var(--accent)' : 'var(--accent2)'
+  
   return (
-    <div className={accent === 'gold' ? 'category-card gold' : 'category-card diamond'} onClick={onClick} style={{ cursor: 'pointer' }}>
-      <p className="category-title">{title}</p>
-      <p className="category-subtitle">{subtitle}</p>
-      <p className="category-meta">{count} bill{count !== 1 ? 's' : ''} · ₹{total.toLocaleString('en-IN')} invested</p>
+    <div className={`category-card ${accent}`} onClick={onClick} style={{ cursor: 'pointer' }}>
+      {/* Icon/Logo */}
+      <div className="card-icon" style={{ background: `${accentColor}15` }}>
+        <span className="card-icon-text">{accent === 'gold' ? '🏆' : '💎'}</span>
+      </div>
+      
+      {/* Instrument Name */}
+      <div className="card-header">
+        <h3 className="card-title">{title}</h3>
+      </div>
+      
+      {/* Price Display (Total Invested) */}
+      <div className="card-price">
+        <span className="price-amount">₹{(total / 100000).toFixed(2)}L</span>
+        <span className="price-label">invested</span>
+      </div>
+      
+      {/* Change Info (Count + Subtitle) */}
+      <div className="card-change">
+        <div className="change-item">
+          <span className="change-label">{count} bills</span>
+        </div>
+        <div className="change-item">
+          <span className="change-label change-secondary">{subtitle}</span>
+        </div>
+      </div>
     </div>
   )
 }
