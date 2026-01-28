@@ -218,14 +218,18 @@ function App() {
       
       const goldValue = (rate && weight > 0) ? rate * weight : 0
       
-      // Diamond value: direct or computed
+      // Diamond value: Use extracted stoneCost (now properly computed by backend)
+      // stoneCost should always be available after backend post-processing
       let diamondValue = 0
       if (typeof meta.stoneCost === 'number' && meta.stoneCost > 0) {
         diamondValue = meta.stoneCost
-      } else if (typeof meta.grossPrice === 'number' && typeof meta.netMetalWeight === 'number' && typeof meta.goldRatePerGram === 'number') {
-        const grossPrice = meta.grossPrice
-        const netMetalPrice = meta.netMetalWeight * meta.goldRatePerGram
-        diamondValue = Math.max(0, grossPrice - netMetalPrice)
+      } else {
+        // Fallback: Try to compute if stoneCost not available (shouldn't happen after backend fix)
+        if (typeof meta.grossPrice === 'number' && typeof meta.netMetalWeight === 'number' && typeof meta.goldRatePerGram === 'number') {
+          const grossPrice = meta.grossPrice
+          const netMetalPrice = meta.netMetalWeight * meta.goldRatePerGram
+          diamondValue = Math.max(0, grossPrice - netMetalPrice)
+        }
       }
       
       return goldValue + diamondValue

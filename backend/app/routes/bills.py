@@ -10,6 +10,55 @@ from ..services.openai_client import OpenAIClient
 from ..services.pdf_service import pdf_first_page_to_png_bytes
 
 
+def _compute_missing_stonecost(extracted: dict) -> dict:
+  """
+  Post-process extraction: Compute stoneCost if not directly extracted.
+  
+  PRIORITY 1: If stoneCost already extracted and > 0, use it (direct)
+  PRIORITY 2: If finalPrice and netMetalWeight and goldRatePerGram available:
+              stoneCost = finalPrice - (netMetalWeight × goldRatePerGram)
+              This derives the diamond/stone cost from what customer paid
+  PRIORITY 3: If neither available, leave stoneCost as-is (null or 0)
+  
+  Example:
+    finalPrice = 19631
+    netMetalWeight = 0.99
+    goldRatePerGram = 8428
+    → stoneCost = 19631 - (0.99 × 8428) = 19631 - 8344 = 11287
+  """
+  # Already has stoneCost value > 0, use it
+  if isinstance(extracted.get('stoneCost'), (int, float)) and extracted['stoneCost'] > 0:
+    print(f"[_compute_missing_stonecost] Using direct stoneCost: {extracted['stoneCost']}")
+    return extracted
+  
+  # Try to compute from finalPrice - (weight × rate)
+  final_price = extracted.get('finalPrice')
+  net_weight = extracted.get('netMetalWeight')
+  gold_rate = extracted.get('goldRatePerGram')
+  
+  if (isinstance(final_price, (int, float)) and final_price > 0 and
+      isinstance(net_weight, (int, float)) and net_weight > 0 and
+      isinstance(gold_rate, (int, float)) and gold_rate > 0):
+    
+    net_metal_cost = net_weight * gold_rate
+    computed_stone = final_price - net_metal_cost
+    
+    if computed_stone > 0:
+      extracted['stoneCost'] = round(computed_stone, 2)
+      print(f"[_compute_missing_stonecost] Computed stoneCost: {extracted['stoneCost']} "
+            f"(finalPrice={final_price} - metalCost={net_metal_cost})")
+      return extracted
+    else:
+      print(f"[_compute_missing_stonecost] Computed stoneCost would be ≤ 0 "
+            f"({computed_stone}), leaving as-is")
+      return extracted
+  
+  # Cannot compute, leave as-is
+  print(f"[_compute_missing_stonecost] Cannot compute stoneCost "
+        f"(finalPrice={final_price}, netWeight={net_weight}, goldRate={gold_rate})")
+  return extracted
+
+
 router = APIRouter()
 
 
@@ -163,7 +212,13 @@ IMPORTANT field definitions:
 - diamondCarat: Total diamond weight in CARATS (ct). Look for headers labeled "Diamond Carat", "Carat", or "Ct". This is the FIRST value in multi-value columns like "NET STONE WEIGHT (Carats/Grams)". Example: 0.159 ct → diamondCarat = 0.159
 - stoneWeight: Stone/diamond weight in GRAMS (g). This is the SECOND value in multi-value columns like "NET STONE WEIGHT (Carats/Grams)". Example: 0.032 g → stoneWeight = 0.032
 - diamondCertificate: Certificate/report number (e.g., IGI/GIA) if present.
-- stoneCost: Cost of stones/diamonds (often the diamond amount on the bill). If the bill has a separate diamond line-item amount, put it here.
+- stoneCost: Cost of stones/diamonds (the value of diamonds/stones only, NOT the total jewellery cost).
+  - PRIORITY 1 (DIRECT): If the bill has a separate "Diamond Cost", "Stone Cost", "Diamond Amount" line-item, extract that value.
+  - PRIORITY 2 (DERIVED): If no separate diamond line but final price is available:
+    * stoneCost = finalPrice - (netMetalWeight × goldRatePerGram)
+    * Example: finalPrice=19631, metal=(0.99 × 8428)=8344 → stoneCost=19631-8344=11287
+  - PRIORITY 3: If neither available, leave as null (indicates diamond valuation not yet calculated)
+  - NOTE: This is NOT the same as grossPrice. Use finalPrice (what customer actually paid) as the basis.
 - goldRatePerGram: The GOLD RATE per gram for the specific purity (ONLY if explicitly stated on the bill under GOLD section).
   - This is a 4-5 digit number (typically 6000-10000 Rs/gm).
   - Look for headers like "Gold Rate", "Rate/gm", "Rate", "Gold Price" in the GOLD METAL section only.
@@ -305,6 +360,10 @@ async def upload_bill(file: UploadFile = File(...), category: str | None = Form(
       extracted_json = {"raw": extracted_raw}
     print(f"[bills.upload] extracted_json keys (image): {list(extracted_json.keys())}")
     print(f"[bills.upload] extracted_json (image): {extracted_json}")
+    
+    # Post-process: Compute stoneCost if not extracted (for diamond bills)
+    extracted_json = _compute_missing_stonecost(extracted_json)
+    
     return JSONResponse({
       "bill_id": bill_id,
       "file_path": file_path,
@@ -340,6 +399,10 @@ async def upload_bill(file: UploadFile = File(...), category: str | None = Form(
       extracted_json = {"raw": extracted_raw}
     print(f"[bills.upload] extracted_json keys (pdf): {list(extracted_json.keys())}")
     print(f"[bills.upload] extracted_json (pdf): {extracted_json}")
+    
+    # Post-process: Compute stoneCost if not extracted (for diamond bills)
+    extracted_json = _compute_missing_stonecost(extracted_json)
+    
     return JSONResponse({
       "bill_id": bill_id,
       "file_path": file_path,
