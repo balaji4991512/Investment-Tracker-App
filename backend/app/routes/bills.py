@@ -1,4 +1,5 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException
+from fastapi import APIRouter, File, UploadFile, HTTPException, Form
 from fastapi.responses import JSONResponse
 import base64
 import json
@@ -12,7 +13,9 @@ from ..services.pdf_service import pdf_first_page_to_png_bytes
 router = APIRouter()
 
 
-EXTRACTION_PROMPT = """You are an expert at extracting structured data from Indian jewelry/gold bill receipts.
+EXTRACTION_PROMPT_GOLD = """You are an expert at extracting structured data from Indian GOLD jewellery bill receipts.
+
+First, identify the bill's main LINE-ITEM being purchased (e.g., a necklace/ring/chain) and IGNORE any generic rate tables (e.g., "Standard Rate of 24 Karat / 22 Karat / 18 Karat Gold").
 
 Return ONLY a single JSON object with EXACTLY these keys:
 
@@ -25,6 +28,7 @@ Return ONLY a single JSON object with EXACTLY these keys:
   "grossWeight": number or null,
   "goldRatePerGram": number or null,
   "makingChargesPerGram": number or null,
+  "hallmarkCharges": number or null,
   "stoneCost": number or null,
   "grossPrice": number or null,
   "gst": { "cgst": number or null, "sgst": number or null, "total": number or null },
@@ -34,13 +38,97 @@ Return ONLY a single JSON object with EXACTLY these keys:
 }
 
 IMPORTANT field definitions for Indian jewellery bills:
+- productName: The purchased item's name/description (e.g., "Diamond ring", "Gold chain"). Do NOT return generic headings like "Standard Rate of ...".
 - goldRatePerGram: The BASE GOLD RATE per gram. This is the LARGER number (typically 6000-10000 Rs/gm in 2024-2025). Often labeled "Gold Rate", "Rate", "Rate/gm", "Gold Price". This is the market price of gold.
 - makingChargesPerGram: Making/wastage/labor charges PER GRAM. This is the SMALLER number (typically 500-3000 Rs/gm). Often labeled "Making", "MC", "Wastage", "VA", "MC/gm", "Making Charges".
+- hallmarkCharges: Hallmark assay charges (TOTAL amount, NOT per-gram). Often labeled "HM", "HM Charges", "Hallmark", "Assay". This is separate from making charges.
 - CRITICAL: goldRatePerGram should ALWAYS be larger than makingChargesPerGram. If you see two per-gram rates, the bigger one is goldRatePerGram.
+- CRITICAL: If a table column header spans TWO LINES like "NET STONE WEIGHT (Carats/Grams)", extract BOTH values: Carats (first number) and Grams (second number). Map Carats → stoneWeight and Grams → a NEW separate value.
 - stoneCost: Cost of stones/diamonds embedded. Often labeled "Stone", "Stone Cost", "Diamond". This is NOT a discount.
 - discounts: Actual discounts or offers applied. Only use this for amounts explicitly labeled as "Discount", "Offer", "Less".
 - grossPrice: Total price before GST.
 - finalPrice: Final amount paid (after GST, after discounts).
+
+MULTI-VALUE COLUMN HANDLING:
+When a single column has multiple values on the same row (e.g., "NET STONE WEIGHT" with values "0.159" and "0.032"):
+1. The FIRST value (left-most) typically corresponds to the header's first unit (e.g., Carats for "NET STONE WEIGHT (Carats/Grams)")
+2. The SECOND value (next in row) corresponds to the second unit (e.g., Grams)
+3. Extract EACH value to its designated field separately. Do NOT merge, swap, or drop any values.
+
+GROUPED CHARGES HANDLING:
+When charges are listed together (e.g., "Making Charges: 9885" and "HM Charges: 90" in the same section):
+1. Extract BOTH values separately
+2. Do NOT merge or combine them
+3. Assign makingChargesPerGram = 9885 (or per-gram if labeled as such)
+4. Assign hallmarkCharges = 90 (total HM charge)
+
+Validation rules (must obey):
+- grossWeight should be >= netMetalWeight (if both present).
+- finalPrice should be >= 0.
+- If you see a "Standard Rate" table, do NOT use it as productName.
+
+Rules:
+- Use numbers without currency symbols or commas.
+- Dates must be YYYY-MM-DD or null.
+- If a value is missing or unreadable, set it to null.
+- Do NOT add any extra keys.
+- Do NOT include any text before or after the JSON.
+"""
+
+EXTRACTION_PROMPT_DIAMOND = """You are an expert at extracting structured data from Indian DIAMOND jewellery bill receipts.
+
+First, identify the bill's main LINE-ITEM being purchased (e.g., diamond ring/earrings/necklace) and IGNORE any generic rate tables (e.g., "Standard Rate of 24 Karat / 22 Karat / 18 Karat Gold").
+
+Return ONLY a single JSON object with EXACTLY these keys:
+
+{
+  "vendor": string or null,
+  "productName": string or null,
+  "purchaseDate": string or null,
+  "netMetalWeight": number or null,
+  "stoneWeight": number or null,
+  "grossWeight": number or null,
+  "goldRatePerGram": number or null,
+  "makingChargesPerGram": number or null,
+  "hallmarkCharges": number or null,
+  "stoneCost": number or null,
+  "grossPrice": number or null,
+  "gst": { "cgst": number or null, "sgst": number or null, "total": number or null },
+  "discounts": number or null,
+  "finalPrice": number or null,
+  "goldPurity": string or null,
+  "diamondCarat": number or null,
+  "diamondCut": string or null,
+  "diamondClarity": string or null,
+  "diamondColor": string or null,
+  "diamondCertificate": string or null
+}
+
+IMPORTANT field definitions:
+- productName: The purchased item's name/description. Do NOT return generic headings like "Standard Rate of ...".
+- diamondCarat: Total diamond weight in carats (ct) from the bill (NOT gold weight).
+- diamondCertificate: Certificate/report number (e.g., IGI/GIA) if present.
+- stoneCost: Cost of stones/diamonds (often the diamond amount on the bill). If the bill has a separate diamond line-item amount, put it here.
+- goldRatePerGram & makingChargesPerGram: Same as gold bills, but ONLY if they are explicitly present. If not present, set to null.
+- hallmarkCharges: Hallmark assay charges (TOTAL amount). Only if explicitly present on diamond bills.
+
+MULTI-VALUE COLUMN HANDLING:
+When a single column has multiple values on the same row (e.g., "NET STONE WEIGHT" with values "0.159" and "0.032"):
+1. The FIRST value (left-most) typically corresponds to the header's first unit (e.g., Carats for "NET STONE WEIGHT (Carats/Grams)")
+2. The SECOND value (next in row) corresponds to the second unit (e.g., Grams)
+3. Extract EACH value to its designated field separately. Do NOT merge, swap, or drop any values.
+
+GROUPED CHARGES HANDLING:
+When charges are listed together (e.g., "Making Charges: 9885" and "HM Charges: 90" in the same section):
+1. Extract BOTH values separately
+2. Do NOT merge or combine them
+3. Assign makingChargesPerGram = 9885 (or per-gram if labeled as such)
+4. Assign hallmarkCharges = 90 (total HM charge)
+
+Validation rules (must obey):
+- grossWeight should be >= netMetalWeight (if both present).
+- finalPrice should be >= 0.
+- If you see a "Standard Rate" table, do NOT use it as productName.
 
 Rules:
 - Use numbers without currency symbols or commas.
@@ -52,9 +140,14 @@ Rules:
 
 
 @router.post("/upload")
-async def upload_bill(file: UploadFile = File(...)) -> JSONResponse:
+async def upload_bill(file: UploadFile = File(...), category: str | None = Form(default=None)) -> JSONResponse:
   content_type = file.content_type or "application/octet-stream"
   print(f"[bills.upload] Received file: name={file.filename}, content_type={content_type}")
+  print(f"[bills.upload] Category: {category}")
+
+  extraction_prompt = EXTRACTION_PROMPT_GOLD
+  if category in {"diamond_jewellery", "diamond"}:
+    extraction_prompt = EXTRACTION_PROMPT_DIAMOND
 
   if not (content_type.startswith("image/") or content_type == "application/pdf"):
     print("[bills.upload] Unsupported content type")
@@ -84,7 +177,7 @@ async def upload_bill(file: UploadFile = File(...)) -> JSONResponse:
     b64 = base64.b64encode(raw_bytes).decode("utf-8")
     data_url = f"data:{content_type};base64,{b64}"
     client = OpenAIClient()
-    result = await client.call_gpt4o_vision(EXTRACTION_PROMPT, data_url)
+    result = await client.call_gpt4o_vision(extraction_prompt, data_url)
     extracted_raw = result["content"] or "{}"
     print(f"[bills.upload] OpenAI content length (image): {len(extracted_raw)}")
     try:
@@ -119,7 +212,7 @@ async def upload_bill(file: UploadFile = File(...)) -> JSONResponse:
     b64 = base64.b64encode(png_bytes).decode("utf-8")
     data_url = "data:image/png;base64," + b64
     client = OpenAIClient()
-    result = await client.call_gpt4o_vision(EXTRACTION_PROMPT, data_url)
+    result = await client.call_gpt4o_vision(extraction_prompt, data_url)
     extracted_raw = result["content"] or "{}"
     print(f"[bills.upload] OpenAI content length (pdf): {len(extracted_raw)}")
     try:

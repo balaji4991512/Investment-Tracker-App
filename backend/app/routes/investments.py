@@ -21,6 +21,7 @@ class InvestmentIn(BaseModel):
   purity_karat: Optional[int] = None
   gold_rate_per_gram: Optional[float] = None
   making_charges: Optional[float] = None
+  hallmark_charges: Optional[float] = None
   metadata: Optional[dict] = None
 
 
@@ -38,6 +39,7 @@ class InvestmentOut(BaseModel):
   purity_karat: Optional[int] = None
   gold_rate_per_gram: Optional[float] = None
   making_charges: Optional[float] = None
+  hallmark_charges: Optional[float] = None
   metadata: Optional[dict] = None
 
 

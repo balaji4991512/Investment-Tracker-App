@@ -2,6 +2,7 @@ import json
 import os
 import sqlite3
 import uuid
+import json
 from datetime import date
 from typing import Any, Dict, List, Optional
 
@@ -32,10 +33,16 @@ def init_db() -> None:
         purity_karat INTEGER,
         gold_rate_per_gram REAL,
         making_charges REAL,
+        hallmark_charges REAL,
         metadata TEXT
       )
       """
     )
+    # Add hallmark_charges column if it doesn't exist (backward compatibility)
+    try:
+      conn.execute("ALTER TABLE investments ADD COLUMN hallmark_charges REAL")
+    except sqlite3.OperationalError:
+      pass  # Column already exists
     conn.commit()
   finally:
     conn.close()
@@ -68,6 +75,7 @@ def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
     "purity_karat": row["purity_karat"],
     "gold_rate_per_gram": row["gold_rate_per_gram"],
     "making_charges": row["making_charges"],
+    "hallmark_charges": row["hallmark_charges"] if "hallmark_charges" in row.keys() else None,
     "metadata": metadata,
   }
 
@@ -117,8 +125,8 @@ def create_investment(payload: Dict[str, Any]) -> Dict[str, Any]:
       """
       INSERT INTO investments (
         id, bill_id, category, name, vendor, date, total_amount,
-        weight_grams, purity_karat, gold_rate_per_gram, making_charges, metadata
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        weight_grams, purity_karat, gold_rate_per_gram, making_charges, hallmark_charges, metadata
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       """,
       (
         inv_id,
@@ -132,6 +140,7 @@ def create_investment(payload: Dict[str, Any]) -> Dict[str, Any]:
         payload.get("purity_karat"),
         payload.get("gold_rate_per_gram"),
         payload.get("making_charges"),
+        payload.get("hallmark_charges"),
         metadata_json,
       ),
     )

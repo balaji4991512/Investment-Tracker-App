@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import './App.css'
 
 type UploadState = 'idle' | 'uploading' | 'done' | 'error'
-type ModalStep = 'upload' | 'review'
+type ModalStep = 'category' | 'upload' | 'review'
 
 interface SavedInvestment {
   id: string
@@ -16,8 +16,11 @@ interface SavedInvestment {
   purity_karat: number | null
   gold_rate_per_gram: number | null
   making_charges: number | null
+  hallmark_charges?: number | null
   metadata: any
 }
+
+type ActiveTab = 'home' | 'gold_list' | 'diamond_list' | 'rate_history'
 
 type GoldTodayResponse = {
   date: string
@@ -26,17 +29,32 @@ type GoldTodayResponse = {
   captured_at_ist?: string
 }
 
+type GoldRateHistoryItem = {
+  date: string
+  inr_per_gram_24k: number | null
+  inr_per_gram_22k: number | null
+  inr_per_gram_18k: number | null
+  source?: string
+  captured_at_ist?: string
+}
+
 function App() {
+    // ...existing code...
   const [investments, setInvestments] = useState<SavedInvestment[]>([])
-  const [activeView, setActiveView] = useState<'home' | 'gold_list' | 'diamond_list'>('home')
+  const [activeView, setActiveView] = useState<ActiveTab>('home')
   const [goldToday, setGoldToday] = useState<GoldTodayResponse | null>(null)
+  const [rateHistory, setRateHistory] = useState<GoldRateHistoryItem[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [modalStep, setModalStep] = useState<ModalStep>('upload')
+  const [modalStep, setModalStep] = useState<ModalStep>('category')
   const [uploadState, setUploadState] = useState<UploadState>('idle')
   const [extractedJson, setExtractedJson] = useState<string>('')
   const [errorMessage, setErrorMessage] = useState<string>('')
-  const [selectedCategory, setSelectedCategory] = useState<'gold' | 'diamond'>('gold')
+  const [selectedCategory, setSelectedCategory] = useState<string>('')
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false)
   const [billId, setBillId] = useState<string | null>(null)
+
+  const [selectedInvestment, setSelectedInvestment] = useState<SavedInvestment | null>(null)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   // Review fields mapped from extracted JSON
   const [vendorName, setVendorName] = useState('')
@@ -55,6 +73,13 @@ function App() {
   const [discounts, setDiscounts] = useState('')
   const [finalPrice, setFinalPrice] = useState('')
   const [goldPurity, setGoldPurity] = useState('')
+
+  // Diamond-specific fields
+  const [diamondCarat, setDiamondCarat] = useState('')
+  const [diamondCut, setDiamondCut] = useState('')
+  const [diamondClarity, setDiamondClarity] = useState('')
+  const [diamondColor, setDiamondColor] = useState('')
+  const [diamondCertificate, setDiamondCertificate] = useState('')
 
   // Load investments on mount
   const loadInvestments = async () => {
@@ -88,6 +113,24 @@ function App() {
     }
     loadGold()
   }, [])
+
+  const loadRateHistory = async () => {
+    try {
+      const res = await fetch('http://127.0.0.1:8000/rates/gold/history')
+      if (res.ok) {
+        const data = await res.json()
+        setRateHistory(data)
+      }
+    } catch (err) {
+      console.error('Failed to load rate history:', err)
+    }
+  }
+
+  useEffect(() => {
+    if (activeView === 'rate_history') {
+      loadRateHistory()
+    }
+  }, [activeView])
 
   // Compute totals
   const totalInvested = investments.reduce((sum, inv) => sum + (inv.total_amount || 0), 0)
@@ -164,6 +207,15 @@ function App() {
     }
   }
 
+  const openDrawer = (inv: SavedInvestment) => {
+    setSelectedInvestment(inv)
+    setIsDrawerOpen(true)
+  }
+
+  const closeDrawer = () => {
+    setIsDrawerOpen(false)
+  }
+
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -186,11 +238,19 @@ function App() {
     setDiscounts('')
     setFinalPrice('')
     setGoldPurity('')
+    setDiamondCarat('')
+    setDiamondCut('')
+    setDiamondClarity('')
+    setDiamondColor('')
+    setDiamondCertificate('')
+    // Always stay on upload step; transition to review only after processing completes
     setModalStep('upload')
 
     try {
       const formData = new FormData()
       formData.append('file', file)
+      // Tell backend which extraction schema to use
+      formData.append('category', selectedCategory === 'diamond' ? 'diamond_jewellery' : 'gold_jewellery')
 
       const res = await fetch('http://127.0.0.1:8000/bills/upload', {
         method: 'POST',
@@ -215,8 +275,7 @@ function App() {
       console.log('[App] extracted:', extracted)
 
       try {
-        // New schema: vendor, productName, purchaseDate, netMetalWeight, stoneWeight, grossWeight,
-        // grossPrice, gst { cgst, sgst, total }, discounts, finalPrice, goldPurity, goldRatePerGram
+        // Gold fields
         const vendorVal = extracted.vendor ?? ''
         const descVal = extracted.productName ?? ''
         const dateVal = extracted.purchaseDate ?? ''
@@ -254,6 +313,15 @@ function App() {
         if (finalAmount != null) setFinalPrice(String(finalAmount))
         if (purityVal) setGoldPurity(String(purityVal))
 
+        // Diamond fields (only if diamond category)
+        if (selectedCategory === 'diamond') {
+          if (extracted.diamondCarat != null) setDiamondCarat(String(extracted.diamondCarat))
+          if (extracted.diamondCut != null) setDiamondCut(String(extracted.diamondCut))
+          if (extracted.diamondClarity != null) setDiamondClarity(String(extracted.diamondClarity))
+          if (extracted.diamondColor != null) setDiamondColor(String(extracted.diamondColor))
+          if (extracted.diamondCertificate != null) setDiamondCertificate(String(extracted.diamondCertificate))
+        }
+
         setExtractedJson(JSON.stringify(extracted, null, 2))
       } catch {
         setExtractedJson(typeof data.extracted === 'string' ? data.extracted : JSON.stringify(data.extracted, null, 2))
@@ -265,6 +333,26 @@ function App() {
       setErrorMessage(err?.message ?? 'Something went wrong while processing the bill.')
     }
   }
+
+  const openAddForCategory = (category: 'gold' | 'diamond') => {
+    setSelectedCategory(category)
+    setIsAddMenuOpen(false)
+    setIsModalOpen(true)
+    setModalStep('upload')
+  }
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null
+      if (!t) return
+      if (t.closest('.add-menu-wrap') || t.closest('.fab-menu') || t.closest('.fab')) return
+      setIsAddMenuOpen(false)
+    }
+    if (isAddMenuOpen) {
+      window.addEventListener('mousedown', onDown)
+      return () => window.removeEventListener('mousedown', onDown)
+    }
+  }, [isAddMenuOpen])
 
   const handleSaveInvestment = async () => {
     if (!billId || !finalPrice) return
@@ -286,7 +374,7 @@ function App() {
         metadata = null
       }
 
-      const payload = {
+      let payload: any = {
         bill_id: billId,
         category: selectedCategory === 'gold' ? 'gold_jewellery' : 'diamond_jewellery',
         name: productName || 'Jewellery investment',
@@ -298,6 +386,17 @@ function App() {
         gold_rate_per_gram: toNumber(goldPrice),
         making_charges: toNumber(makingChargesPerGram),
         metadata,
+      }
+      // Only add diamond fields for diamond category
+      if (selectedCategory === 'diamond') {
+        payload = {
+          ...payload,
+          diamond_carat: toNumber(diamondCarat),
+          diamond_cut: diamondCut || null,
+          diamond_clarity: diamondClarity || null,
+          diamond_color: diamondColor || null,
+          diamond_certificate: diamondCertificate || null,
+        }
       }
 
       const res = await fetch('http://127.0.0.1:8000/investments/', {
@@ -341,12 +440,15 @@ function App() {
             <button className={activeView === 'diamond_list' ? 'side-nav-item active' : 'side-nav-item'} onClick={() => setActiveView('diamond_list')} type="button">
               Diamond Jewellery
             </button>
+            <button className={activeView === 'rate_history' ? 'side-nav-item active' : 'side-nav-item'} onClick={() => setActiveView('rate_history')} type="button">
+              Live Rates
+            </button>
           </nav>
 
           <div className="sidebar-foot">
             <div className="sidebar-foot-pill">
               <span className="dot" />
-              Live rates
+              Last updated 10:30 AM
             </div>
           </div>
         </aside>
@@ -354,8 +456,10 @@ function App() {
         <div className="main">
           <header className="topbar">
             <div className="topbar-left">
-              <div className="topbar-title">{activeView === 'home' ? 'Overview' : activeView === 'gold_list' ? 'Gold Jewellery' : 'Diamond Jewellery'}</div>
-              <div className="topbar-sub">Vibrant dark portfolio tracker</div>
+              <div className="topbar-title">
+                {activeView === 'home' ? 'Overview' : activeView === 'gold_list' ? 'Gold Jewellery' : activeView === 'diamond_list' ? 'Diamond Jewellery' : 'Live Gold Rates'}
+              </div>
+              <div className="topbar-sub">Clean, modern investment tracker</div>
             </div>
             <div className="topbar-right">
               {activeView !== 'home' && (
@@ -363,16 +467,6 @@ function App() {
                   Back
                 </button>
               )}
-              <button
-                className="primary-btn"
-                type="button"
-                onClick={() => {
-                  setIsModalOpen(true)
-                  setModalStep('upload')
-                }}
-              >
-                Add
-              </button>
             </div>
           </header>
 
@@ -380,35 +474,41 @@ function App() {
 
         {activeView === 'home' && (
           <>
-            {/* Header / Hero */}
-            <header className="hero">
+            <div className="dash-head">
               <div>
-                <p className="hero-kicker">investment tracker</p>
-                <h1 className="hero-title">Your jewellery, under control.</h1>
+                <p className="hero-kicker">admin / overview</p>
+                <h1 className="hero-title">Portfolio dashboard</h1>
               </div>
-              <div className="hero-metric">
-                <p className="hero-metric-label">total invested</p>
-                <p className="hero-metric-value">₹{totalInvested.toLocaleString('en-IN')}</p>
+              <div className="rate-chip">
+                <span className="dot" />
+                24K ₹{goldToday?.inr_per_gram?.['24']?.toLocaleString('en-IN') ?? '—'} / g
               </div>
-          <div className="hero-metric">
-            <p className="hero-metric-label">current gold value</p>
-            <p className="hero-metric-value">₹{Math.round(currentGoldValue).toLocaleString('en-IN')}</p>
-          </div>
-          <div className="hero-metric">
-            <p className="hero-metric-label">return</p>
-            <p className="hero-metric-value" style={{ color: returnAmount >= 0 ? '#5CFFA6' : '#FF7E7E' }}>
-              {returnAmount >= 0 ? '+' : ''}₹{Math.round(returnAmount).toLocaleString('en-IN')} ({returnPct >= 0 ? '+' : ''}{returnPct.toFixed(2)}%)
-            </p>
-          </div>
-          <div className="hero-metric">
-            <p className="hero-metric-label">xirr</p>
-            <p className="hero-metric-value" style={{ color: (portfolioXirr ?? 0) >= 0 ? '#5CFFA6' : '#FF7E7E' }}>
-              {portfolioXirr == null ? '—' : `${(portfolioXirr * 100).toFixed(2)}%`}
-            </p>
-          </div>
-            </header>
+            </div>
 
-            {/* Categories */}
+            <section className="stat-grid">
+              <div className="stat-card">
+                <div className="stat-label">Total invested</div>
+                <div className="stat-value">₹{totalInvested.toLocaleString('en-IN')}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">Current gold value</div>
+                <div className="stat-value">₹{Math.round(currentGoldValue).toLocaleString('en-IN')}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">Return</div>
+                <div className={returnAmount >= 0 ? 'stat-value green' : 'stat-value red'}>
+                  {returnAmount >= 0 ? '+' : ''}₹{Math.round(returnAmount).toLocaleString('en-IN')}
+                  <span className="stat-sub">({returnPct >= 0 ? '+' : ''}{returnPct.toFixed(2)}%)</span>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">XIRR</div>
+                <div className={(portfolioXirr ?? 0) >= 0 ? 'stat-value green' : 'stat-value red'}>
+                  {portfolioXirr == null ? '—' : `${(portfolioXirr * 100).toFixed(2)}%`}
+                </div>
+              </div>
+            </section>
+
             <section className="categories">
               <CategoryCard
                 title="Gold Jewellery"
@@ -428,34 +528,103 @@ function App() {
               />
             </section>
 
+            <InvestmentTable
+              title="Recent investments"
+              investments={[...investments].slice(0, 8)}
+              goldToday={goldToday}
+              onView={openDrawer}
+              onDelete={deleteInvestment}
+            />
+
             {/* Floating Add button */}
             <button
               className="fab"
               onClick={() => {
-                setIsModalOpen(true)
-                setModalStep('upload')
+                setIsAddMenuOpen((v) => !v)
               }}
             >
               <span>＋</span>
               <span>Add investment</span>
             </button>
+            {isAddMenuOpen && (
+              <div className="fab-menu" role="menu">
+                <button className="add-menu-item" type="button" onClick={() => openAddForCategory('gold')}>
+                  Gold Jewellery
+                </button>
+                <button className="add-menu-item" type="button" onClick={() => openAddForCategory('diamond')}>
+                  Diamond Jewellery
+                </button>
+              </div>
+            )}
           </>
         )}
 
         {activeView === 'gold_list' && (
-          <InvestmentList
+          <InvestmentTable
             title="Gold Jewellery"
             investments={goldInvestments}
+            goldToday={goldToday}
+            onView={openDrawer}
             onDelete={deleteInvestment}
           />
         )}
 
         {activeView === 'diamond_list' && (
-          <InvestmentList
+          <InvestmentTable
             title="Diamond Jewellery"
             investments={diamondInvestments}
+            goldToday={goldToday}
+            onView={openDrawer}
             onDelete={deleteInvestment}
           />
+        )}
+
+        {activeView === 'rate_history' && (
+          <section>
+            <div className="page-head">
+              <div>
+                <h2 className="page-title">Gold Rate History</h2>
+                <p className="page-sub">Daily gold rates fetched at 10:30 AM IST</p>
+              </div>
+            </div>
+
+            <div className="table-card">
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th style={{ textAlign: 'right' }}>24KT Gold (₹/g)</th>
+                      <th style={{ textAlign: 'right' }}>22KT Gold (₹/g)</th>
+                      <th style={{ textAlign: 'right' }}>18KT Gold (₹/g)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rateHistory.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="table-empty">No rate data available.</td>
+                      </tr>
+                    ) : (
+                      rateHistory.map((rate) => (
+                        <tr key={rate.date}>
+                          <td>{rate.date}</td>
+                          <td style={{ textAlign: 'right' }}>
+                            {rate.inr_per_gram_24k != null ? `₹${rate.inr_per_gram_24k.toLocaleString('en-IN')}` : '—'}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            {rate.inr_per_gram_22k != null ? `₹${rate.inr_per_gram_22k.toLocaleString('en-IN')}` : '—'}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            {rate.inr_per_gram_18k != null ? `₹${rate.inr_per_gram_18k.toLocaleString('en-IN')}` : '—'}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
         )}
 
         {isModalOpen && (
@@ -463,24 +632,22 @@ function App() {
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <p className="modal-kicker">smart add</p>
-                <h2 className="modal-title">Add jewellery investment</h2>
+                <h2 className="modal-title">Add investment</h2>
               </div>
 
-              {/* Category toggle */}
-              <div className="category-toggle">
-                <button
-                  className={selectedCategory === 'gold' ? 'toggle-btn active' : 'toggle-btn'}
-                  onClick={() => setSelectedCategory('gold')}
-                >
-                  Gold jewellery
-                </button>
-                <button
-                  className={selectedCategory === 'diamond' ? 'toggle-btn active' : 'toggle-btn'}
-                  onClick={() => setSelectedCategory('diamond')}
-                >
-                  Diamond jewellery
-                </button>
-              </div>
+              {modalStep === 'category' && (
+                <div className="category-select">
+                  <p className="upload-title">Select investment type</p>
+                  <div className="category-options">
+                    <button className={selectedCategory === 'gold' ? 'toggle-btn active' : 'toggle-btn'} onClick={() => openAddForCategory('gold')}>
+                      Gold Jewellery
+                    </button>
+                    <button className={selectedCategory === 'diamond' ? 'toggle-btn active' : 'toggle-btn'} onClick={() => openAddForCategory('diamond')}>
+                      Diamond Jewellery
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {modalStep === 'upload' && (
                 <div className="upload-card">
@@ -515,7 +682,6 @@ function App() {
                 <div className="upload-card">
                   <p className="upload-title">Review &amp; edit fields</p>
                   <p className="upload-subtitle">We&apos;ve pre-filled these from your bill. Tweak anything before saving.</p>
-
                   <div className="review-grid">
                     <div className="review-field">
                       <label>Vendor Name</label>
@@ -565,6 +731,32 @@ function App() {
                       <input className="field-input" value={grossPrice} onChange={(e) => setGrossPrice(e.target.value)} />
                     </div>
 
+                    {/* Diamond-specific fields */}
+                    {selectedCategory === 'diamond' && (
+                      <>
+                        <div className="review-field">
+                          <label>Diamond Carat (ct)</label>
+                          <input className="field-input" value={diamondCarat || ''} onChange={e => setDiamondCarat(e.target.value)} />
+                        </div>
+                        <div className="review-field">
+                          <label>Diamond Cut</label>
+                          <input className="field-input" value={diamondCut || ''} onChange={e => setDiamondCut(e.target.value)} />
+                        </div>
+                        <div className="review-field">
+                          <label>Diamond Clarity</label>
+                          <input className="field-input" value={diamondClarity || ''} onChange={e => setDiamondClarity(e.target.value)} />
+                        </div>
+                        <div className="review-field">
+                          <label>Diamond Color</label>
+                          <input className="field-input" value={diamondColor || ''} onChange={e => setDiamondColor(e.target.value)} />
+                        </div>
+                        <div className="review-field">
+                          <label>Certificate Number</label>
+                          <input className="field-input" value={diamondCertificate || ''} onChange={e => setDiamondCertificate(e.target.value)} />
+                        </div>
+                      </>
+                    )}
+
                     <div className="review-field">
                       <label>GST (₹)</label>
                       <input className="field-input" value={gsts} onChange={(e) => setGsts(e.target.value)} />
@@ -603,6 +795,48 @@ function App() {
           </div>
         )}
 
+        {isDrawerOpen && selectedInvestment && (
+          <div className="drawer-backdrop" onClick={closeDrawer}>
+            <aside className="drawer" onClick={(e) => e.stopPropagation()}>
+              <div className="drawer-head">
+                <div>
+                  <div className="drawer-title">{selectedInvestment.name}</div>
+                  <div className="drawer-sub">{selectedInvestment.vendor ?? '—'} · {selectedInvestment.date ?? '—'}</div>
+                </div>
+                <button className="icon-btn" type="button" onClick={closeDrawer} aria-label="Close">
+                  ✕
+                </button>
+              </div>
+
+              <div className="drawer-kpis">
+                <div className="kpi-card">
+                  <div className="kpi-label">Invested</div>
+                  <div className="kpi-value">₹{selectedInvestment.total_amount.toLocaleString('en-IN')}</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-label">Net weight</div>
+                  <div className="kpi-value">{selectedInvestment.weight_grams ?? '—'} g</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-label">Purity</div>
+                  <div className="kpi-value">{selectedInvestment.purity_karat ?? '—'}K</div>
+                </div>
+              </div>
+
+              <div className="drawer-section">
+                <div className="drawer-section-title">Extracted details</div>
+                <pre className="drawer-pre">{JSON.stringify(selectedInvestment.metadata ?? {}, null, 2)}</pre>
+              </div>
+
+              <div className="drawer-actions">
+                <button className="danger-btn" type="button" onClick={() => deleteInvestment(selectedInvestment.id)}>
+                  Delete
+                </button>
+              </div>
+            </aside>
+          </div>
+        )}
+
           </div>
         </div>
       </div>
@@ -629,95 +863,99 @@ function CategoryCard({ title, subtitle, accent, count, total, onClick }: Catego
   )
 }
 
-function InvestmentList({
+function InvestmentTable({
   title,
   investments,
+  goldToday,
+  onView,
   onDelete,
 }: {
   title: string
   investments: SavedInvestment[]
+  goldToday: GoldTodayResponse | null
+  onView: (inv: SavedInvestment) => void
   onDelete: (id: string) => void
 }) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
+  const computeReturn = (inv: SavedInvestment) => {
+    if (!goldToday) return null
+    if (inv.category !== 'gold_jewellery') return null
+    const meta = inv.metadata ?? {}
+    const purity = inv.purity_karat ?? (typeof meta.goldPurity === 'string' ? parseInt(meta.goldPurity.replace(/[^0-9]/g, ''), 10) : null) ?? 24
+    const w = inv.weight_grams ?? (typeof meta.netMetalWeight === 'number' ? meta.netMetalWeight : 0) ?? 0
+    const rate = goldToday.inr_per_gram[String(purity)] ?? goldToday.inr_per_gram['24']
+    const currentValue = rate * w
+    const invested = inv.total_amount ?? 0
+    const retAmt = currentValue - invested
+    const retPct = invested > 0 ? (retAmt / invested) * 100 : 0
+    return { currentValue, retAmt, retPct }
+  }
+
   return (
     <section>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', margin: '8px 0 12px' }}>
+      <div className="page-head">
         <div>
-          <h2 style={{ margin: 0 }}>{title}</h2>
-          <p style={{ margin: '4px 0 0', color: '#9da1c4', fontSize: 12 }}>Your saved bills & valuations</p>
+          <h2 className="page-title">{title}</h2>
+          <p className="page-sub">Bills, valuations, and performance.</p>
         </div>
-        <button className="secondary-btn" type="button" disabled>
-          See all
-        </button>
       </div>
-      {investments.length === 0 ? (
-        <p style={{ color: '#9da1c4', fontSize: 12 }}>No investments yet.</p>
-      ) : (
-        <div className="inv-list">
-          {investments.map((inv) => (
-            (() => {
-              // Best-effort per-investment mark-to-market using today's gold rates.
-              // Only used for gold_jewellery rows.
-              const meta = inv.metadata ?? {}
-              const purity = inv.purity_karat ?? (typeof meta.goldPurity === 'string' ? parseInt(meta.goldPurity.replace(/[^0-9]/g, ''), 10) : null) ?? 24
-              const w = inv.weight_grams ?? (typeof meta.netMetalWeight === 'number' ? meta.netMetalWeight : 0) ?? 0
-              const rates = (window as any).__goldTodayRates as (GoldTodayResponse | null) // set in App below
-              const rate = rates?.inr_per_gram?.[String(purity)] ?? rates?.inr_per_gram?.['24'] ?? null
-              const currentValue = rate != null ? rate * w : null
-              const invested = inv.total_amount ?? 0
-              const retAmt = currentValue != null ? currentValue - invested : null
-              const retPct = currentValue != null && invested > 0 ? (retAmt! / invested) * 100 : null
 
-              return (
-            <div key={inv.id} className="inv-row">
-              <div className="inv-left">
-                <div className="inv-avatar">Au</div>
-                <div className="inv-text">
-                  <div className="inv-row-title">{inv.name}</div>
-                  <div className="inv-row-sub">{inv.vendor ?? '—'}</div>
-                </div>
-              </div>
-
-              <div className="inv-right">
-                <div className="inv-row-amount">₹{inv.total_amount.toLocaleString('en-IN')}</div>
-                <div className={retAmt != null ? (retAmt >= 0 ? 'inv-row-sub green' : 'inv-row-sub red') : 'inv-row-sub'}>
-                  {retAmt == null || retPct == null
-                    ? (inv.date ?? '—')
-                    : `${retAmt >= 0 ? '+' : ''}₹${Math.round(retAmt).toLocaleString('en-IN')} (${retPct >= 0 ? '+' : ''}${retPct.toFixed(2)}%)`}
-                </div>
-              </div>
-
-              <div className="inv-menu">
-                <button
-                  className="inv-menu-btn"
-                  onClick={() => setOpenMenuId(openMenuId === inv.id ? null : inv.id)}
-                  aria-label="More actions"
-                  type="button"
-                >
-                  ⋯
-                </button>
-                {openMenuId === inv.id && (
-                  <div className="inv-menu-popover">
-                    <button
-                      className="inv-menu-item danger"
-                      onClick={() => {
-                        setOpenMenuId(null)
-                        onDelete(inv.id)
-                      }}
-                      type="button"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-              )
-            })()
-          ))}
+      <div className="table-card">
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Vendor</th>
+                <th>Date</th>
+                <th style={{ textAlign: 'right' }}>Invested</th>
+                <th style={{ textAlign: 'right' }}>Return</th>
+                <th style={{ width: 80 }} />
+              </tr>
+            </thead>
+            <tbody>
+              {investments.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="table-empty">No investments yet.</td>
+                </tr>
+              ) : (
+                investments.map((inv) => {
+                  const r = computeReturn(inv)
+                  const retText = r ? `${r.retAmt >= 0 ? '+' : ''}₹${Math.round(r.retAmt).toLocaleString('en-IN')} (${r.retPct >= 0 ? '+' : ''}${r.retPct.toFixed(2)}%)` : '—'
+                  const retClass = r ? (r.retAmt >= 0 ? 'green' : 'red') : ''
+                  return (
+                    <tr key={inv.id}>
+                      <td>
+                        <button className="link-btn" type="button" onClick={() => onView(inv)}>
+                          {inv.name}
+                        </button>
+                      </td>
+                      <td>{inv.vendor ?? '—'}</td>
+                      <td>{inv.date ?? '—'}</td>
+                      <td style={{ textAlign: 'right' }}>₹{inv.total_amount.toLocaleString('en-IN')}</td>
+                      <td style={{ textAlign: 'right' }} className={retClass}>{retText}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="row-menu">
+                          <button className="icon-btn" type="button" onClick={() => setOpenMenuId(openMenuId === inv.id ? null : inv.id)} aria-label="Row actions">
+                            ⋯
+                          </button>
+                          {openMenuId === inv.id && (
+                            <div className="row-menu-pop" role="menu">
+                              <button className="row-menu-item" type="button" onClick={() => { setOpenMenuId(null); onView(inv) }}>View</button>
+                              <button className="row-menu-item danger" type="button" onClick={() => { setOpenMenuId(null); onDelete(inv.id) }}>Delete</button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
     </section>
   )
 }
