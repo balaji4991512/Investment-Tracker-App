@@ -1,4 +1,5 @@
 .app-root {
+  width: 100%;
   min-height: 100vh;
   background: linear-gradient(180deg, #f4f7ff 0%, #eef2ff 55%, #eef2ff 100%);
   color: var(--text);
@@ -23,6 +24,7 @@
 .app-layout {
   display: grid;
   grid-template-columns: 280px 1fr;
+  width: 100%;
   min-height: 100vh;
 }
 
