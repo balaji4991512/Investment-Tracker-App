@@ -97,3 +97,23 @@ async def gold_today_manual(payload: dict):
       "9": row["inr_per_gram_9k"],
     },
   }
+
+
+@router.get("/gold/history")
+async def gold_history():
+  """Return all historical daily gold rates (latest first)."""
+  try:
+    rows = rate_store.get_all_rates_desc()
+    return [
+      {
+        "date": row["date"],
+        "captured_at_ist": row.get("captured_at_ist"),
+        "source": row.get("source"),
+        "inr_per_gram_24k": float(row["inr_per_gram_24k"]) if row["inr_per_gram_24k"] else None,
+        "inr_per_gram_22k": float(row["inr_per_gram_22k"]) if row["inr_per_gram_22k"] else None,
+        "inr_per_gram_18k": float(row["inr_per_gram_18k"]) if row["inr_per_gram_18k"] else None,
+      }
+      for row in rows
+    ]
+  except Exception as e:
+    raise HTTPException(status_code=500, detail=f"Failed to fetch rate history: {e}")

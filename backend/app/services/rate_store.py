@@ -144,4 +144,15 @@ def get_or_fetch_today(fetch_fn) -> Dict[str, Any]:
   )
 
 
+def get_all_rates_desc():
+  """Return all daily rates in descending order by date."""
+  conn = sqlite3.connect(DB_PATH)
+  conn.row_factory = sqlite3.Row
+  try:
+    rows = conn.execute("SELECT * FROM daily_gold_rates ORDER BY date DESC").fetchall()
+    return [dict(row) for row in rows]
+  finally:
+    conn.close()
+
+
 init_rates_table()
