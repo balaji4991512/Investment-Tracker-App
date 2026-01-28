@@ -139,6 +139,7 @@ function App() {
   const goldTotal = goldInvestments.reduce((sum, inv) => sum + (inv.total_amount || 0), 0)
   const diamondTotal = diamondInvestments.reduce((sum, inv) => sum + (inv.total_amount || 0), 0)
 
+  // Calculate current value for gold jewelry (weight × purity-specific rate)
   const currentGoldValue = (() => {
     if (!goldToday) return 0
     return goldInvestments.reduce((sum, inv) => {
@@ -149,8 +150,26 @@ function App() {
     }, 0)
   })()
 
-  const returnAmount = currentGoldValue - totalInvested
+  // Calculate current value for diamond jewelry (use invested amount as placeholder - diamonds don't have live rates)
+  const currentDiamondValue = (() => {
+    // For diamonds, we use the invested amount as the current value unless a separate diamond rate is available
+    // Since diamonds don't have daily live rates like gold, we keep them at cost basis
+    return diamondTotal
+  })()
+
+  // Total portfolio current value
+  const totalCurrentValue = currentGoldValue + currentDiamondValue
+
+  // Portfolio returns
+  const returnAmount = totalCurrentValue - totalInvested
   const returnPct = totalInvested > 0 ? (returnAmount / totalInvested) * 100 : 0
+
+  // Category-level current values and returns (for future category-level dashboard)
+  // const goldReturnAmount = currentGoldValue - goldTotal
+  // const goldReturnPct = goldTotal > 0 ? (goldReturnAmount / goldTotal) * 100 : 0
+
+  // const diamondReturnAmount = currentDiamondValue - diamondTotal
+  // const diamondReturnPct = diamondTotal > 0 ? (diamondReturnAmount / diamondTotal) * 100 : 0
 
   const computeXirr = (cashflows: { date: Date, amount: number }[]) => {
     if (cashflows.length < 2) return null
@@ -177,8 +196,8 @@ function App() {
     return (lo + hi) / 2
   }
 
+  // Calculate XIRR for portfolio (date-aware using all investments and current values)
   const portfolioXirr = (() => {
-    if (!goldToday) return null
     const flows: { date: Date, amount: number }[] = []
     for (const inv of investments) {
       if (!inv.date || !inv.total_amount) continue
@@ -186,11 +205,44 @@ function App() {
       if (isNaN(d.getTime())) continue
       flows.push({ date: d, amount: -inv.total_amount })
     }
+    // Need at least 2 flows (purchase + exit)
+    if (flows.length === 0) return null
     // terminal cashflow = current portfolio value today
     flows.sort((a, b) => a.date.getTime() - b.date.getTime())
-    flows.push({ date: new Date(), amount: currentGoldValue })
+    flows.push({ date: new Date(), amount: totalCurrentValue })
     return computeXirr(flows)
   })()
+
+  // Calculate category-level XIRR for Gold Jewellery (for future category-level dashboard)
+  // const goldXirr = (() => {
+  //   const flows: { date: Date, amount: number }[] = []
+  //   for (const inv of goldInvestments) {
+  //     if (!inv.date || !inv.total_amount) continue
+  //     const d = new Date(inv.date)
+  //     if (isNaN(d.getTime())) continue
+  //     flows.push({ date: d, amount: -inv.total_amount })
+  //   }
+  //   if (flows.length === 0) return null
+  //   flows.sort((a, b) => a.date.getTime() - b.date.getTime())
+  //   flows.push({ date: new Date(), amount: currentGoldValue })
+  //   return computeXirr(flows)
+  // })()
+
+  // Calculate category-level XIRR for Diamond Jewellery (for future category-level dashboard)
+  // const diamondXirr = (() => {
+  //   const flows: { date: Date, amount: number }[] = []
+  //   for (const inv of diamondInvestments) {
+  //     if (!inv.date || !inv.total_amount) continue
+  //     const d = new Date(inv.date)
+  //     if (isNaN(d.getTime())) continue
+  //     flows.push({ date: d, amount: -inv.total_amount })
+  //   }
+  //   if (flows.length === 0) return null
+  //   flows.sort((a, b) => a.date.getTime() - b.date.getTime())
+  //   // For diamonds, current value = invested amount (no live rates)
+  //   flows.push({ date: new Date(), amount: currentDiamondValue })
+  //   return computeXirr(flows)
+  // })()
 
   const deleteInvestment = async (id: string) => {
     if (!confirm('Delete this investment?')) return
