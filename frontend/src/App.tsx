@@ -141,13 +141,30 @@ function App() {
 
   // Calculate current value for gold jewelry (weight × purity-specific rate)
   const currentGoldValue = (() => {
-    if (!goldToday) return 0
-    return goldInvestments.reduce((sum, inv) => {
-      const k = inv.purity_karat ?? 24
-      const rate = goldToday.inr_per_gram[String(k)] ?? goldToday.inr_per_gram['24']
-      const w = inv.weight_grams ?? 0
-      return sum + rate * w
-    }, 0)
+    if (!goldToday || !goldToday.inr_per_gram) return 0
+    
+    let total = 0
+    for (const inv of goldInvestments) {
+      // Get purity (default to 24 if not specified)
+      const purity = inv.purity_karat ?? 24
+      const purityKey = String(purity)
+      
+      // Get rate for this purity, fallback to 24K if purity not found
+      const rate = goldToday.inr_per_gram[purityKey] ?? goldToday.inr_per_gram['24']
+      
+      // Get weight - try direct field first, then metadata
+      const weight = inv.weight_grams ?? (inv.metadata?.netMetalWeight ?? 0)
+      
+      // Only add if we have valid rate and weight
+      if (rate && weight > 0) {
+        total += rate * weight
+        console.log(`[currentGoldValue] ${inv.name}: ${weight}g @ ₹${rate}/g = ₹${rate * weight}`)
+      } else {
+        console.warn(`[currentGoldValue] Skipped ${inv.name}: weight=${weight}, rate=${rate}`)
+      }
+    }
+    console.log(`[currentGoldValue] Total: ₹${total}`)
+    return total
   })()
 
   // Calculate current value for diamond jewelry (use invested amount as placeholder - diamonds don't have live rates)
@@ -955,16 +972,31 @@ function InvestmentTable({
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   const computeReturn = (inv: SavedInvestment) => {
-    if (!goldToday) return null
+    if (!goldToday || !goldToday.inr_per_gram) return null
     if (inv.category !== 'gold_jewellery') return null
+    
     const meta = inv.metadata ?? {}
+    
+    // Get purity from stored field or metadata
     const purity = inv.purity_karat ?? (typeof meta.goldPurity === 'string' ? parseInt(meta.goldPurity.replace(/[^0-9]/g, ''), 10) : null) ?? 24
-    const w = inv.weight_grams ?? (typeof meta.netMetalWeight === 'number' ? meta.netMetalWeight : 0) ?? 0
+    
+    // Get weight from stored field or metadata
+    const weight = inv.weight_grams ?? (typeof meta.netMetalWeight === 'number' ? meta.netMetalWeight : 0) ?? 0
+    
+    // Get rate for purity, fallback to 24K
     const rate = goldToday.inr_per_gram[String(purity)] ?? goldToday.inr_per_gram['24']
-    const currentValue = rate * w
+    
+    // Calculate current value
+    const currentValue = rate * weight
     const invested = inv.total_amount ?? 0
     const retAmt = currentValue - invested
     const retPct = invested > 0 ? (retAmt / invested) * 100 : 0
+    
+    // Log for debugging
+    if (weight === 0 || !rate) {
+      console.warn(`[computeReturn] ${inv.name}: weight=${weight}, purity=${purity}, rate=${rate}`)
+    }
+    
     return { currentValue, retAmt, retPct }
   }
 
