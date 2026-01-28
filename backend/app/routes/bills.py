@@ -45,15 +45,30 @@ IMPORTANT field definitions for Indian jewellery bills:
 - CRITICAL ACCURACY: goldRatePerGram should ALWAYS be larger than makingChargesPerGram. If you extract goldRatePerGram < makingChargesPerGram, you likely swapped them. Correct this.
 - CRITICAL: If a table column header spans TWO LINES like "NET STONE WEIGHT (Carats/Grams)", extract BOTH values: Carats (first number) and Grams (second number). Map Carats → stoneWeight and Grams → a separate value (diamondCarat for diamond bills). NEVER swap or merge these values.
 - stoneCost: Cost of stones/diamonds embedded. Often labeled "Stone", "Stone Cost", "Diamond". This is NOT a discount.
-- discounts: Actual discounts or offers applied. Only use this for amounts explicitly labeled as "Discount", "Offer", "Less".
+- discounts: Actual discounts or offers applied. Extract ONLY amounts explicitly labeled as "Discount", "Offer", "Less", "Scheme Discount", "Product Discount". Do NOT infer or calculate discounts. Do NOT derive this from price differences. Extract EXACTLY as-is from invoice.
 - grossPrice: Total price before GST.
-- finalPrice: Final amount paid (after GST, after discounts).
+- finalPrice: Final amount paid (TOTAL AMOUNT PAID / NET INVOICE VALUE). Extract EXACTLY from the invoice. This is the amount the customer actually pays. Do NOT recompute or derive this from other fields. Do NOT add/subtract components. Extract the explicit final total amount shown on the bill.
 
 CRITICAL FIELD ACCURACY RULES:
 1. GOLD RATE PER GRAM: Extract ONLY from rows/columns explicitly labeled with "Gold Rate", "Rate", "Rate/gm", or similar. This is a 4-5 digit number (e.g., 7510.89). Do NOT infer from making charges or other values. Do NOT auto-fill based on proximity.
 2. HEADER-VALUE ALIGNMENT: Always match extracted values to their EXACT header by position. Do NOT move values between columns.
 3. UNIT CONTEXT: Pay attention to units (Rs/gm, gm, ct, g, etc.) to confirm field accuracy.
 4. NO SWAPPING: If goldRatePerGram < makingChargesPerGram, you have the values reversed. Swap them back.
+
+FINAL PRICE AND DISCOUNT EXTRACTION (CRITICAL):
+- finalPrice: Extract the exact amount shown on the invoice as "Total Amount Paid", "Net Invoice Value", "Amount Due", "Bill Total", or similar.
+  - This is what the customer actually pays (after all taxes and discounts).
+  - Look for the FINAL row/section marked as the total/payable amount.
+  - Do NOT recompute: Do NOT add gold cost + stone cost + making charges + GST - discount.
+  - Do NOT approximate: Do NOT estimate based on nearby values.
+  - Do NOT override: Do NOT replace with calculated totals.
+  - Extract EXACTLY the number shown on the invoice.
+- discounts: Extract ONLY if explicitly labeled with "Discount", "Offer", "Scheme Discount", "Product Discount", "Less", or similar.
+  - This is the reduction from the original price (product-level or scheme).
+  - Do NOT infer: Do NOT calculate as (grossPrice - finalPrice).
+  - Do NOT derive: Do NOT estimate based on price differences.
+  - Extract the exact discount amount shown on the invoice, or null if not explicitly present.
+  - Examples: "Discount: 500" → 500, "Scheme Discount: 1000" → 1000, "No discount" → null
 
 MULTI-VALUE COLUMN HANDLING:
 When a single column has multiple values on the same row (e.g., "NET STONE WEIGHT" with values "0.159" and "0.032"):
@@ -116,9 +131,11 @@ IMPORTANT field definitions:
 - stoneWeight: Stone/diamond weight in GRAMS (g). This is the SECOND value in multi-value columns like "NET STONE WEIGHT (Carats/Grams)". Example: 0.032 g → stoneWeight = 0.032
 - diamondCertificate: Certificate/report number (e.g., IGI/GIA) if present.
 - stoneCost: Cost of stones/diamonds (often the diamond amount on the bill). If the bill has a separate diamond line-item amount, put it here.
-- goldRatePerGram: The BASE GOLD RATE per gram (ONLY if explicitly stated on the bill). Look for headers like "Gold Rate", "Rate/gm", "Rate", "Gold Price". This is typically a 4-digit number (e.g., 7510.89). Do NOT infer or calculate this from other values. Do NOT swap this with making charges.
+- goldRatePerGram: The BASE GOLD RATE per gram (ONLY if explicitly stated on the bill). Look for headers like "Gold Rate", "Rate/gm", "Rate", "Gold Price". This is typically a 4-5 digit number (e.g., 7510.89). Do NOT infer or calculate this from other values. Do NOT swap this with making charges.
 - makingChargesPerGram: Making/labor charges PER GRAM. This is typically a 3-4 digit number (e.g., 1234). Do NOT confuse with goldRatePerGram.
 - hallmarkCharges: Hallmark assay charges (TOTAL amount). Only if explicitly present on diamond bills.
+- discounts: Actual discounts or offers applied. Extract ONLY amounts explicitly labeled as "Discount", "Offer", "Less", "Scheme Discount", "Product Discount". Do NOT infer or calculate discounts. Do NOT derive this from price differences. Extract EXACTLY as-is from invoice.
+- finalPrice: Final amount paid (TOTAL AMOUNT PAID / NET INVOICE VALUE). Extract EXACTLY from the invoice. This is the amount the customer actually pays. Do NOT recompute or derive this from other fields. Do NOT add/subtract components. Extract the explicit final total amount shown on the bill.
 
 CRITICAL FIELD ACCURACY RULES:
 1. DIAMOND CARAT vs STONE WEIGHT: If you see "NET STONE WEIGHT (Carats/Grams) 0.159 0.032", then:
@@ -128,6 +145,21 @@ CRITICAL FIELD ACCURACY RULES:
 2. GOLD RATE PER GRAM: Extract from the row/column explicitly labeled "Gold Rate", "Rate", or "Gold Price". Look for the LARGER per-gram value (typically 4-5 digits like 7510.89). Do NOT use values from making charges rows.
 3. HEADER-VALUE ALIGNMENT: Always match extracted values to their exact header by position. Do NOT move values between columns.
 4. UNIT CONTEXT: Pay attention to units (ct, g, rs/gm, etc.) to confirm field accuracy.
+
+FINAL PRICE AND DISCOUNT EXTRACTION (CRITICAL):
+- finalPrice: Extract the exact amount shown on the invoice as "Total Amount Paid", "Net Invoice Value", "Amount Due", "Bill Total", or similar.
+  - This is what the customer actually pays (after all taxes and discounts).
+  - Look for the FINAL row/section marked as the total/payable amount.
+  - Do NOT recompute: Do NOT add gold cost + diamond cost + making charges + GST - discount.
+  - Do NOT approximate: Do NOT estimate based on nearby values.
+  - Do NOT override: Do NOT replace with calculated totals.
+  - Extract EXACTLY the number shown on the invoice.
+- discounts: Extract ONLY if explicitly labeled with "Discount", "Offer", "Scheme Discount", "Product Discount", "Less", or similar.
+  - This is the reduction from the original price (product-level or scheme).
+  - Do NOT infer: Do NOT calculate as (grossPrice - finalPrice).
+  - Do NOT derive: Do NOT estimate based on price differences.
+  - Extract the exact discount amount shown on the invoice, or null if not explicitly present.
+  - Examples: "Discount: 500" → 500, "Scheme Discount: 1000" → 1000, "No discount" → null
 
 MULTI-VALUE COLUMN HANDLING:
 When a single column has multiple values on the same row (e.g., "NET STONE WEIGHT" with values "0.159" and "0.032"):
