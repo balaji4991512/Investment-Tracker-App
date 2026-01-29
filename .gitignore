@@ -41,6 +41,9 @@ assets/.env
 # Backend stores user uploads under `files/bills/` — ignore this directory
 files/bills/
 backend/files/bills/
+ 
+# Do not commit local SQLite DBs
+/backend/app/db/*.db
 
 # Symbolication related
 app.*.symbols
