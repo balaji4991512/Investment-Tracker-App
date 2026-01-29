@@ -457,6 +457,44 @@ body,
   background: rgba(106, 92, 255, 0.06);
 }
 
+/* Make the selected/hovered item use accent color like the example */
+.row-menu-item:not(.danger):hover {
+  background: var(--accent);
+  color: #ffffff;
+}
+.row-menu-item.danger:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--bad);
+}
+
+/* small pointer/triangle on top of the popover */
+.row-menu-pop::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  right: 18px; /* place pointer near the three-dot button */
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid var(--panel);
+  filter: drop-shadow(0 -2px 2px rgba(0,0,0,0.04));
+}
+
+/* subtle pointer border to match popover border color */
+.row-menu-pop::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  right: 17px;
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 9px solid rgba(15, 23, 42, 0.08);
+  z-index: -1;
+}
+
 .row-menu-item.danger {
   color: var(--bad);
 }
