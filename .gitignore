@@ -37,6 +37,11 @@ assets/.env
 /build/
 /coverage/
 
+# Do not commit uploaded bill PDFs or images
+# Backend stores user uploads under `files/bills/` — ignore this directory
+files/bills/
+backend/files/bills/
+
 # Symbolication related
 app.*.symbols
 
