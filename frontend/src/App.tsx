@@ -30,6 +30,20 @@ type GoldTodayResponse = {
   captured_at_ist?: string
 }
 
+type SilverTodayResponse = {
+  date: string
+  inr_per_gram: number
+  source: string
+  captured_at_ist?: string
+}
+
+type PlatinumTodayResponse = {
+  date: string
+  inr_per_gram: number
+  source: string
+  captured_at_ist?: string
+}
+
 type GoldRateHistoryItem = {
   date: string
   inr_per_gram_24k: number | null
@@ -46,7 +60,12 @@ function App() {
   const [investments, setInvestments] = useState<SavedInvestment[]>([])
   const [activeView, setActiveView] = useState<ActiveTab>('home')
   const [goldToday, setGoldToday] = useState<GoldTodayResponse | null>(null)
+  const [silverToday, setSilverToday] = useState<SilverTodayResponse | null>(null)
+  const [platinumToday, setPlatinumToday] = useState<PlatinumTodayResponse | null>(null)
+  const [platinumHistory, setPlatinumHistory] = useState<any[]>([])
   const [rateHistory, setRateHistory] = useState<GoldRateHistoryItem[]>([])
+  const [silverHistory, setSilverHistory] = useState<any[]>([])
+  const [rateTab, setRateTab] = useState<'gold' | 'silver' | 'platinum'>('gold')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalStep, setModalStep] = useState<ModalStep>('category')
   const [uploadState, setUploadState] = useState<UploadState>('idle')
@@ -150,6 +169,39 @@ function App() {
       }
     }
     loadGold()
+    // load silver and platinum rates as well
+    const loadSilver = async () => {
+      try {
+        const res = await fetch('http://127.0.0.1:8000/rates/silver/today')
+        if (res.ok) {
+          const data = await res.json()
+          setSilverToday(data)
+          ;(window as any).__silverTodayRates = data
+          console.log('[loadSilver] Loaded silver rate:', data)
+        } else {
+          console.warn('[loadSilver] Silver rate not available, status:', res.status)
+        }
+      } catch (err) {
+        console.error('[loadSilver] Failed to load silver rate:', err)
+      }
+    }
+    loadSilver()
+    const loadPlatinum = async () => {
+      try {
+        const res = await fetch('http://127.0.0.1:8000/rates/platinum/today')
+        if (res.ok) {
+          const data = await res.json()
+          setPlatinumToday(data)
+          ;(window as any).__platinumTodayRates = data
+          console.log('[loadPlatinum] Loaded platinum rate:', data)
+        } else {
+          console.warn('[loadPlatinum] Platinum rate not available, status:', res.status)
+        }
+      } catch (err) {
+        console.error('[loadPlatinum] Failed to load platinum rate:', err)
+      }
+    }
+    loadPlatinum()
   }, [])
 
   const loadRateHistory = async () => {
@@ -210,6 +262,48 @@ function App() {
     }
   }, [activeView])
 
+  useEffect(() => {
+    if (activeView === 'rate_history') {
+      const loadSilverHistory = async () => {
+        try {
+          const res = await fetch('http://127.0.0.1:8000/rates/silver/history')
+          if (res.ok) {
+            const data = await res.json()
+            setSilverHistory(data)
+            console.log('[loadSilverHistory] loaded', data.length)
+          } else {
+            setSilverHistory([])
+          }
+        } catch (err) {
+          console.error('[loadSilverHistory] failed', err)
+          setSilverHistory([])
+        }
+      }
+      loadSilverHistory()
+    }
+  }, [activeView])
+
+  useEffect(() => {
+    if (activeView === 'rate_history') {
+      const loadPlatinumHistory = async () => {
+        try {
+          const res = await fetch('http://127.0.0.1:8000/rates/platinum/history')
+          if (res.ok) {
+            const data = await res.json()
+            setPlatinumHistory(data)
+            console.log('[loadPlatinumHistory] loaded', data.length)
+          } else {
+            setPlatinumHistory([])
+          }
+        } catch (err) {
+          console.error('[loadPlatinumHistory] failed', err)
+          setPlatinumHistory([])
+        }
+      }
+      loadPlatinumHistory()
+    }
+  }, [activeView])
+
   // CATEGORY-AGNOSTIC LINE ITEM VALUATION
   // Computes Current Value for any investment regardless of category
   const computeLineItemValue = (inv: SavedInvestment): number => {
@@ -245,6 +339,26 @@ function App() {
         return rate * weight
       }
       // fallback to invested amount when missing data
+      return inv.total_amount ?? 0
+    }
+
+    // SILVER: detect silver by category, metadata, or name
+    const nameLower = String(inv.name || '').toLowerCase()
+    const metalFromMeta = (meta && meta.metal) ? String(meta.metal).toLowerCase() : ''
+    const isSilver = inv.category === 'silver' || metalFromMeta === 'silver' || nameLower.includes('silver')
+    if (isSilver) {
+      if (!silverToday || typeof silverToday.inr_per_gram !== 'number') return inv.total_amount ?? 0
+      const weight = inv.weight_grams ?? (meta.netMetalWeight ?? 0)
+      if (weight > 0) return silverToday.inr_per_gram * weight
+      return inv.total_amount ?? 0
+    }
+
+    // PLATINUM: detect by category/metadata/name
+    const isPlatinum = inv.category === 'platinum' || metalFromMeta === 'platinum' || nameLower.includes('platinum')
+    if (isPlatinum) {
+      if (!platinumToday || typeof platinumToday.inr_per_gram !== 'number') return inv.total_amount ?? 0
+      const weight = inv.weight_grams ?? (meta.netMetalWeight ?? 0)
+      if (weight > 0) return platinumToday.inr_per_gram * weight
       return inv.total_amount ?? 0
     }
     
@@ -437,6 +551,21 @@ function App() {
   useEffect(() => {
     calculateStoneValue()
   }, [grossPrice, netMetalWeight, goldPrice, stoneCost, selectedCategory])
+
+  // Preview/computation for making charges: interpret '2.5/gm' or '2.5' as per-gram when helpful
+  const makingWeight = Number(netMetalWeight) || 0
+  const makingInputRaw = String(makingChargesPerGram ?? '').trim()
+  const makingNumMatch = makingInputRaw.match(/-?\d+(?:\.\d+)?/) 
+  const makingNum = makingNumMatch ? Number(makingNumMatch[0]) : NaN
+  const makingHasPerGram = /\/g|\/gm|per g|per gram|gram/i.test(makingInputRaw)
+  const makingInterpretableAsPerGram = makingHasPerGram || (Number.isFinite(makingNum) && makingNum > 0 && makingNum <= 500 && makingWeight > 0)
+  const makingPreviewTotal = makingInterpretableAsPerGram && Number.isFinite(makingNum) ? Number((makingNum * makingWeight).toFixed(2)) : null
+
+  const applyMakingAsTotal = () => {
+    if (makingPreviewTotal != null) {
+      setMakingChargesPerGram(String(makingPreviewTotal))
+    }
+  }
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -644,7 +773,25 @@ function App() {
       // Enforce pricing rules per category before sending
       const weight = toNumber(netMetalWeight) || 0
       const ratePerGram = toNumber(goldPrice) || 0
-      const makingPerGram = toNumber(makingChargesPerGram) || 0
+      // Parse making charges: allow either a per-gram value (e.g. "2.5/gm") or a total amount (e.g. "1000")
+      const parseMakingInput = (v: string | null, wt: number) => {
+        if (v == null) return { perGram: null as number | null, total: null as number | null }
+        const s = String(v).trim().toLowerCase()
+        const numMatch = s.match(/-?\d+(?:\.\d+)?/)
+        const num = numMatch ? Number(numMatch[0]) : NaN
+        const hasPerGram = s.includes('/g') || s.includes('/gm') || s.includes('/gram')
+        if (hasPerGram) {
+          const perGram = Number.isFinite(num) ? num : null
+          const total = perGram != null && wt > 0 ? Number((perGram * wt).toFixed(2)) : null
+          return { perGram, total }
+        }
+        // otherwise treat as total amount
+        const total = Number.isFinite(num) ? num : null
+        return { perGram: null as number | null, total }
+      }
+      const makingParsed = parseMakingInput(makingChargesPerGram, weight)
+      const makingPerGram = makingParsed.perGram
+      const makingTotalParsed = makingParsed.total
       const gstVal = toNumber(gsts) || 0
       const discountsVal = toNumber(discounts) || 0
       const explicitStone = toNumber(stoneCost) || null
@@ -676,7 +823,8 @@ function App() {
           // No invoice gross: compute from components (only when necessary)
           const stoneVal = explicitStone != null ? explicitStone : 0
           const metalValue = weight * ratePerGram
-          const makingTotal = makingPerGram * weight
+          // Prefer explicit making total when provided; else use per-gram * weight (if per-gram present)
+          const makingTotal = (makingTotalParsed != null) ? makingTotalParsed : (makingPerGram != null ? makingPerGram * weight : 0)
           const grossComputed = metalValue + makingTotal + (stoneVal || 0) + (hallmarkCharges || 0)
           const finalComputed = grossComputed + (gstVal || 0) - (discountsVal || 0)
 
@@ -684,6 +832,12 @@ function App() {
           metaCopy.grossPrice = grossComputed
           if (explicitStone != null && explicitStone > 0) metaCopy.stoneCost = explicitStone
           metaCopy.goldRatePerGram = ratePerGram
+          // record making charges in metadata (store total and per-gram if available)
+          if (makingTotalParsed != null) metaCopy.makingCharges = makingTotalParsed
+          else if (makingPerGram != null) {
+            metaCopy.makingChargesPerGram = makingPerGram
+            metaCopy.makingCharges = Number((makingPerGram * weight).toFixed(2))
+          }
           metaCopy.netMetalWeight = weight
         }
       }
@@ -744,8 +898,11 @@ function App() {
         }
       }
 
-      // Attach sanitized metadata copy
+      // Attach sanitized metadata copy and normalized making charges
       payload.metadata = metaCopy
+      // Set payload.making_charges to an absolute total amount (if we computed one)
+      if (makingTotalParsed != null) payload.making_charges = makingTotalParsed
+      else if (makingPerGram != null) payload.making_charges = Number((makingPerGram * weight).toFixed(2))
 
       const res = await fetch('http://127.0.0.1:8000/investments/', {
         method: 'POST',
@@ -960,57 +1117,126 @@ function App() {
 
         {activeView === 'rate_history' && (
           <section>
-            <div className="page-head">
+            <div className="page-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <h2 className="page-title">Gold Rate History</h2>
-                <p className="page-sub">Daily gold rates fetched at 10:30 AM IST</p>
+                <h2 className="page-title">Live Rates</h2>
+                <p className="page-sub">Daily metal rates (select a metal)</p>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className={rateTab === 'gold' ? 'rate-tab active' : 'rate-tab'} onClick={() => setRateTab('gold')} type="button">Gold</button>
+                <button className={rateTab === 'silver' ? 'rate-tab active' : 'rate-tab'} onClick={() => setRateTab('silver')} type="button">Silver</button>
+                <button className={rateTab === 'platinum' ? 'rate-tab active' : 'rate-tab'} onClick={() => setRateTab('platinum')} type="button">Platinum</button>
               </div>
             </div>
 
-            <div className="table-card">
-              <div className="table-wrap">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th style={{ textAlign: 'right' }}>24KT Gold (₹/g)</th>
-                      <th style={{ textAlign: 'right' }}>22KT Gold (₹/g)</th>
-                      <th style={{ textAlign: 'right' }}>18KT Gold (₹/g)</th>
-                      <th style={{ textAlign: 'right' }}>14KT Gold (₹/g)</th>
-                      <th style={{ textAlign: 'right' }}>9KT Gold (₹/g)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rateHistory.length === 0 ? (
+            {rateTab === 'gold' && (
+              <div className="table-card">
+                <div className="table-wrap">
+                  <table className="table">
+                    <thead>
                       <tr>
-                        <td colSpan={6} className="table-empty">No rate data available.</td>
+                        <th>Date</th>
+                        <th style={{ textAlign: 'right' }}>24KT Gold (₹/g)</th>
+                        <th style={{ textAlign: 'right' }}>22KT Gold (₹/g)</th>
+                        <th style={{ textAlign: 'right' }}>18KT Gold (₹/g)</th>
+                        <th style={{ textAlign: 'right' }}>14KT Gold (₹/g)</th>
+                        <th style={{ textAlign: 'right' }}>9KT Gold (₹/g)</th>
                       </tr>
-                    ) : (
-                      rateHistory.map((rate) => (
-                        <tr key={rate.date}>
-                          <td>{rate.date}</td>
-                          <td style={{ textAlign: 'right' }}>
-                            {rate.inr_per_gram_24k != null ? `₹${rate.inr_per_gram_24k.toLocaleString('en-IN')}` : '—'}
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            {rate.inr_per_gram_22k != null ? `₹${rate.inr_per_gram_22k.toLocaleString('en-IN')}` : '—'}
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            {rate.inr_per_gram_18k != null ? `₹${rate.inr_per_gram_18k.toLocaleString('en-IN')}` : '—'}
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            {rate.inr_per_gram_14k != null ? `₹${rate.inr_per_gram_14k.toLocaleString('en-IN')}` : '—'}
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            {rate.inr_per_gram_9k != null ? `₹${rate.inr_per_gram_9k.toLocaleString('en-IN')}` : '—'}
-                          </td>
+                    </thead>
+                    <tbody>
+                      {rateHistory.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="table-empty">No rate data available.</td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        rateHistory.map((rate) => (
+                          <tr key={rate.date}>
+                            <td>{rate.date}</td>
+                            <td style={{ textAlign: 'right' }}>
+                              {rate.inr_per_gram_24k != null ? `₹${rate.inr_per_gram_24k.toLocaleString('en-IN')}` : '—'}
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              {rate.inr_per_gram_22k != null ? `₹${rate.inr_per_gram_22k.toLocaleString('en-IN')}` : '—'}
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              {rate.inr_per_gram_18k != null ? `₹${rate.inr_per_gram_18k.toLocaleString('en-IN')}` : '—'}
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              {rate.inr_per_gram_14k != null ? `₹${rate.inr_per_gram_14k.toLocaleString('en-IN')}` : '—'}
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              {rate.inr_per_gram_9k != null ? `₹${rate.inr_per_gram_9k.toLocaleString('en-IN')}` : '—'}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
+
+            {rateTab === 'silver' && (
+              <div className="table-card">
+                <div className="table-wrap">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th style={{ textAlign: 'right' }}>Silver /g (₹)</th>
+                        <th style={{ textAlign: 'right' }}>Silver /kg (₹)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {silverHistory.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="table-empty">No silver rate data available.</td>
+                        </tr>
+                      ) : (
+                        silverHistory.map((r) => (
+                          <tr key={r.date}>
+                            <td>{r.date}</td>
+                            <td style={{ textAlign: 'right' }}>{r.inr_per_gram != null ? `₹${Number(r.inr_per_gram).toLocaleString('en-IN')}` : '—'}</td>
+                            <td style={{ textAlign: 'right' }}>{r.inr_per_gram != null ? `₹${Math.round(r.inr_per_gram * 1000).toLocaleString('en-IN')}` : '—'}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {rateTab === 'platinum' && (
+              <div className="table-card">
+                <div className="table-wrap">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th style={{ textAlign: 'right' }}>Platinum /g (₹)</th>
+                        <th style={{ textAlign: 'right' }}>Platinum /kg (₹)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {platinumHistory.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="table-empty">No platinum rate data available.</td>
+                        </tr>
+                      ) : (
+                        platinumHistory.map((r) => (
+                          <tr key={r.date}>
+                            <td>{r.date}</td>
+                            <td style={{ textAlign: 'right' }}>{r.inr_per_gram != null ? `₹${Number(r.inr_per_gram).toLocaleString('en-IN')}` : '—'}</td>
+                            <td style={{ textAlign: 'right' }}>{r.inr_per_gram != null ? `₹${Math.round(r.inr_per_gram * 1000).toLocaleString('en-IN')}` : '—'}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -1109,8 +1335,14 @@ function App() {
                       <input className="field-input" value={goldPrice} onChange={(e) => setGoldPrice(e.target.value)} />
                     </div>
                     <div className="review-field">
-                      <label>Making Charges / gram (₹)</label>
-                      <input className="field-input" value={makingChargesPerGram} onChange={(e) => setMakingChargesPerGram(e.target.value)} />
+                      <label>Making Charges (₹)</label>
+                      <input className="field-input" value={makingChargesPerGram} onChange={(e) => setMakingChargesPerGram(e.target.value)} placeholder="e.g. 2.5/gm or 1000" />
+                      {makingPreviewTotal != null && (
+                        <div style={{ marginTop: 6, fontSize: 12, color: 'rgba(15,23,42,0.6)' }}>
+                          Interpreting as per‑gram: total ₹{makingPreviewTotal.toLocaleString('en-IN')} for {makingWeight} g.
+                          <button style={{ marginLeft: 8 }} className="secondary-btn" type="button" onClick={applyMakingAsTotal}>Apply total</button>
+                        </div>
+                      )}
                     </div>
                     {/* For Gold: only show Stone Cost if it was explicitly present in extraction (do not allow deriving it) */}
                     {selectedCategory === 'gold' && stoneCost !== '' && (
@@ -1382,6 +1614,20 @@ function InvestmentTable({
       const retAmt = currentValue - invested
       const retPct = invested > 0 ? (retAmt / invested) * 100 : 0
 
+      return { currentValue, retAmt, retPct }
+    }
+
+    // SILVER: table returns using silverToday
+    const nameLower = String(inv.name || '').toLowerCase()
+    const metalFromMeta = (meta && meta.metal) ? String(meta.metal).toLowerCase() : ''
+    const isSilver = inv.category === 'silver' || metalFromMeta === 'silver' || nameLower.includes('silver')
+    if (isSilver) {
+      if (!silverToday || typeof silverToday.inr_per_gram !== 'number') return null
+      const weight = inv.weight_grams ?? (typeof meta.netMetalWeight === 'number' ? meta.netMetalWeight : 0) ?? 0
+      const currentValue = silverToday.inr_per_gram * weight
+      const invested = inv.total_amount ?? 0
+      const retAmt = currentValue - invested
+      const retPct = invested > 0 ? (retAmt / invested) * 100 : 0
       return { currentValue, retAmt, retPct }
     }
 

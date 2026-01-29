@@ -44,6 +44,34 @@ def init_rates_table() -> None:
     conn.close()
 
 
+def init_silver_rates_table() -> None:
+  os.makedirs(DB_DIR, exist_ok=True)
+  conn = sqlite3.connect(DB_PATH)
+  try:
+    conn.execute(
+      """
+      CREATE TABLE IF NOT EXISTS daily_silver_rates (
+        date TEXT PRIMARY KEY,
+        inr_per_gram REAL,
+        source TEXT,
+        captured_at_ist TEXT
+      )
+      """
+    )
+    for col, typ in [
+      ("inr_per_gram", "REAL"),
+      ("source", "TEXT"),
+      ("captured_at_ist", "TEXT"),
+    ]:
+      try:
+        conn.execute(f"ALTER TABLE daily_silver_rates ADD COLUMN {col} {typ}")
+      except sqlite3.OperationalError:
+        pass
+    conn.commit()
+  finally:
+    conn.close()
+
+
 def upsert_daily_rate(
   date: str,
   inr_per_gram_24k: float,
@@ -153,6 +181,132 @@ def get_all_rates_desc():
     return [dict(row) for row in rows]
   finally:
     conn.close()
+
+
+def upsert_daily_silver_rate(date: str, inr_per_gram: float, source: str, captured_at_ist: str):
+  conn = sqlite3.connect(DB_PATH)
+  try:
+    conn.execute(
+      """
+      INSERT INTO daily_silver_rates (
+        date, inr_per_gram, source, captured_at_ist
+      ) VALUES (?, ?, ?, ?)
+      ON CONFLICT(date) DO UPDATE SET
+        inr_per_gram=excluded.inr_per_gram,
+        source=excluded.source,
+        captured_at_ist=excluded.captured_at_ist
+      """,
+      (date, float(inr_per_gram), source, captured_at_ist),
+    )
+    conn.commit()
+  finally:
+    conn.close()
+  return {
+    "date": date,
+    "inr_per_gram": float(inr_per_gram),
+    "source": source,
+    "captured_at_ist": captured_at_ist,
+  }
+
+
+def get_silver_rate_by_date(date: str):
+  conn = sqlite3.connect(DB_PATH)
+  conn.row_factory = sqlite3.Row
+  try:
+    row = conn.execute("SELECT * FROM daily_silver_rates WHERE date = ?", (date,)).fetchone()
+    return dict(row) if row else None
+  finally:
+    conn.close()
+
+
+def get_all_silver_rates_desc():
+  conn = sqlite3.connect(DB_PATH)
+  conn.row_factory = sqlite3.Row
+  try:
+    rows = conn.execute("SELECT * FROM daily_silver_rates ORDER BY date DESC").fetchall()
+    return [dict(row) for row in rows]
+  finally:
+    conn.close()
+
+
+init_silver_rates_table()
+
+
+def init_platinum_rates_table() -> None:
+  os.makedirs(DB_DIR, exist_ok=True)
+  conn = sqlite3.connect(DB_PATH)
+  try:
+    conn.execute(
+      """
+      CREATE TABLE IF NOT EXISTS daily_platinum_rates (
+        date TEXT PRIMARY KEY,
+        inr_per_gram REAL,
+        source TEXT,
+        captured_at_ist TEXT
+      )
+      """
+    )
+    for col, typ in [
+      ("inr_per_gram", "REAL"),
+      ("source", "TEXT"),
+      ("captured_at_ist", "TEXT"),
+    ]:
+      try:
+        conn.execute(f"ALTER TABLE daily_platinum_rates ADD COLUMN {col} {typ}")
+      except sqlite3.OperationalError:
+        pass
+    conn.commit()
+  finally:
+    conn.close()
+
+
+def upsert_daily_platinum_rate(date: str, inr_per_gram: float, source: str, captured_at_ist: str):
+  conn = sqlite3.connect(DB_PATH)
+  try:
+    conn.execute(
+      """
+      INSERT INTO daily_platinum_rates (
+        date, inr_per_gram, source, captured_at_ist
+      ) VALUES (?, ?, ?, ?)
+      ON CONFLICT(date) DO UPDATE SET
+        inr_per_gram=excluded.inr_per_gram,
+        source=excluded.source,
+        captured_at_ist=excluded.captured_at_ist
+      """,
+      (date, float(inr_per_gram), source, captured_at_ist),
+    )
+    conn.commit()
+  finally:
+    conn.close()
+  return {
+    "date": date,
+    "inr_per_gram": float(inr_per_gram),
+    "source": source,
+    "captured_at_ist": captured_at_ist,
+  }
+
+
+def get_platinum_rate_by_date(date: str):
+  conn = sqlite3.connect(DB_PATH)
+  conn.row_factory = sqlite3.Row
+  try:
+    row = conn.execute("SELECT * FROM daily_platinum_rates WHERE date = ?", (date,)).fetchone()
+    return dict(row) if row else None
+  finally:
+    conn.close()
+
+
+def get_all_platinum_rates_desc():
+  conn = sqlite3.connect(DB_PATH)
+  conn.row_factory = sqlite3.Row
+  try:
+    rows = conn.execute("SELECT * FROM daily_platinum_rates ORDER BY date DESC").fetchall()
+    return [dict(row) for row in rows]
+  finally:
+    conn.close()
+
+
+init_platinum_rates_table()
 
 
 init_rates_table()

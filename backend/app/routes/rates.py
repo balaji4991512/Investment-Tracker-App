@@ -44,6 +44,161 @@ async def gold_today():
     raise HTTPException(status_code=502, detail=f"Failed to fetch gold rate: {e}")
 
 
+@router.get("/silver/today")
+async def silver_today():
+  try:
+    today = __import__("datetime").date.today().isoformat()
+    today_row = rate_store.get_silver_rate_by_date(today)
+    if not today_row or today_row.get("inr_per_gram") is None:
+      # no automatic scraper for silver currently — return 404 so caller can post manual override
+      raise HTTPException(status_code=404, detail="Silver rate for today not available. Use /rates/silver/today/manual to set it.")
+
+    return {
+      "date": today_row["date"],
+      "captured_at_ist": today_row.get("captured_at_ist"),
+      "source": today_row.get("source"),
+      "inr_per_gram": float(today_row["inr_per_gram"]),
+    }
+  except HTTPException:
+    raise
+  except Exception as e:
+    raise HTTPException(status_code=502, detail=f"Failed to fetch silver rate: {e}")
+
+
+@router.post("/silver/today/manual")
+async def silver_today_manual(payload: dict):
+  """Manual override to store today's silver rate.
+
+  Body example:
+  { "gram": 425 }
+  """
+  today = dt.date.today().isoformat()
+  now_ist = dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30)))
+
+  if "gram" not in payload:
+    raise HTTPException(status_code=400, detail="Missing 'gram' in payload")
+  try:
+    gram = float(payload["gram"])
+  except Exception:
+    raise HTTPException(status_code=400, detail="Invalid 'gram' value")
+
+  row = rate_store.upsert_daily_silver_rate(today, gram, payload.get("source", "manual"), now_ist.isoformat(timespec="seconds"))
+  return {"date": row["date"], "captured_at_ist": row.get("captured_at_ist"), "source": row.get("source"), "inr_per_gram": row["inr_per_gram"]}
+
+
+@router.get("/silver/history")
+async def silver_history():
+  try:
+    rows = rate_store.get_all_silver_rates_desc()
+    return [
+      {
+        "date": row["date"],
+        "captured_at_ist": row.get("captured_at_ist"),
+        "source": row.get("source"),
+        "inr_per_gram": float(row["inr_per_gram"]) if row["inr_per_gram"] is not None else None,
+      }
+      for row in rows
+    ]
+  except Exception as e:
+    raise HTTPException(status_code=500, detail=f"Failed to fetch silver rate history: {e}")
+
+
+@router.post("/silver/{date}")
+async def silver_set_for_date(date: str, payload: dict):
+  """Set silver rate for an arbitrary date (ISO YYYY-MM-DD). Body: { "gram": 425, "source": "manual" }
+
+  This is an admin/backfill endpoint to populate historical silver rates.
+  """
+  try:
+    # validate date format
+    dt.datetime.fromisoformat(date)
+  except Exception:
+    raise HTTPException(status_code=400, detail="Invalid date format, expected YYYY-MM-DD")
+
+  if "gram" not in payload:
+    raise HTTPException(status_code=400, detail="Missing 'gram' in payload")
+  try:
+    gram = float(payload["gram"])
+  except Exception:
+    raise HTTPException(status_code=400, detail="Invalid 'gram' value")
+
+  now_ist = dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30)))
+  row = rate_store.upsert_daily_silver_rate(date, gram, payload.get("source", "manual"), now_ist.isoformat(timespec="seconds"))
+  return {"date": row["date"], "captured_at_ist": row.get("captured_at_ist"), "source": row.get("source"), "inr_per_gram": row["inr_per_gram"]}
+
+
+@router.get("/platinum/today")
+async def platinum_today():
+  try:
+    today = __import__("datetime").date.today().isoformat()
+    today_row = rate_store.get_platinum_rate_by_date(today)
+    if not today_row or today_row.get("inr_per_gram") is None:
+      raise HTTPException(status_code=404, detail="Platinum rate for today not available. Use /rates/platinum/today/manual to set it.")
+
+    return {
+      "date": today_row["date"],
+      "captured_at_ist": today_row.get("captured_at_ist"),
+      "source": today_row.get("source"),
+      "inr_per_gram": float(today_row["inr_per_gram"]),
+    }
+  except HTTPException:
+    raise
+  except Exception as e:
+    raise HTTPException(status_code=502, detail=f"Failed to fetch platinum rate: {e}")
+
+
+@router.post("/platinum/today/manual")
+async def platinum_today_manual(payload: dict):
+  today = dt.date.today().isoformat()
+  now_ist = dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30)))
+
+  if "gram" not in payload:
+    raise HTTPException(status_code=400, detail="Missing 'gram' in payload")
+  try:
+    gram = float(payload["gram"])
+  except Exception:
+    raise HTTPException(status_code=400, detail="Invalid 'gram' value")
+
+  row = rate_store.upsert_daily_platinum_rate(today, gram, payload.get("source", "manual"), now_ist.isoformat(timespec="seconds"))
+  return {"date": row["date"], "captured_at_ist": row.get("captured_at_ist"), "source": row.get("source"), "inr_per_gram": row["inr_per_gram"]}
+
+
+@router.get("/platinum/history")
+async def platinum_history():
+  try:
+    rows = rate_store.get_all_platinum_rates_desc()
+    return [
+      {
+        "date": row["date"],
+        "captured_at_ist": row.get("captured_at_ist"),
+        "source": row.get("source"),
+        "inr_per_gram": float(row["inr_per_gram"]) if row["inr_per_gram"] is not None else None,
+      }
+      for row in rows
+    ]
+  except Exception as e:
+    raise HTTPException(status_code=500, detail=f"Failed to fetch platinum rate history: {e}")
+
+
+@router.post("/platinum/{date}")
+async def platinum_set_for_date(date: str, payload: dict):
+  try:
+    dt.datetime.fromisoformat(date)
+  except Exception:
+    raise HTTPException(status_code=400, detail="Invalid date format, expected YYYY-MM-DD")
+
+  if "gram" not in payload:
+    raise HTTPException(status_code=400, detail="Missing 'gram' in payload")
+  try:
+    gram = float(payload["gram"])
+  except Exception:
+    raise HTTPException(status_code=400, detail="Invalid 'gram' value")
+
+  now_ist = dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30)))
+  row = rate_store.upsert_daily_platinum_rate(date, gram, payload.get("source", "manual"), now_ist.isoformat(timespec="seconds"))
+  return {"date": row["date"], "captured_at_ist": row.get("captured_at_ist"), "source": row.get("source"), "inr_per_gram": row["inr_per_gram"]}
+
+
 @router.post("/gold/today/manual")
 async def gold_today_manual(payload: dict):
   """Manual override to store today's 10:30am IST snapshot.
