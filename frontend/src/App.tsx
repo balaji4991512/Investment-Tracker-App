@@ -34,6 +34,8 @@ type GoldRateHistoryItem = {
   inr_per_gram_24k: number | null
   inr_per_gram_22k: number | null
   inr_per_gram_18k: number | null
+  inr_per_gram_14k?: number | null
+  inr_per_gram_9k?: number | null
   source?: string
   captured_at_ist?: string
 }
@@ -107,9 +109,15 @@ function App() {
           const data = await res.json()
           // Verify data has valid inr_per_gram
           if (data && data.inr_per_gram && Object.keys(data.inr_per_gram).length > 0) {
+            // Ensure 14k and 9k are populated (compute from 24k if missing)
+            const r24 = data.inr_per_gram['24'] ?? data.inr_per_gram['24k'] ?? null
+            const inr14 = data.inr_per_gram['14'] != null ? data.inr_per_gram['14'] : (r24 != null ? Number((r24 * 14 / 24).toFixed(2)) : null)
+            const inr9 = data.inr_per_gram['9'] != null ? data.inr_per_gram['9'] : (r24 != null ? Number((r24 * 9 / 24).toFixed(2)) : null)
+            data.inr_per_gram['14'] = inr14
+            data.inr_per_gram['9'] = inr9
             setGoldToday(data)
             ;(window as any).__goldTodayRates = data
-            console.log('[loadGold] Successfully loaded today\'s rates:', data)
+            console.log('[loadGold] Successfully loaded today\'s rates (normalized):', data)
           } else {
             console.warn('[loadGold] Today\'s rate data invalid, fetching fallback from history')
             const fallbackRate = await getFallbackRate()
@@ -146,9 +154,20 @@ function App() {
       const res = await fetch('http://127.0.0.1:8000/rates/gold/history')
       if (res.ok) {
         const data = await res.json()
-        setRateHistory(data)
-        console.log('[loadRateHistory] Loaded history with', data.length, 'records')
-        return data
+        // Normalize history: ensure 14k and 9k rates exist (compute from 24k if missing)
+        const normalized = (data || []).map((it: any) => {
+          const r24 = it.inr_per_gram_24k
+          const inr14 = it.inr_per_gram_14k != null ? it.inr_per_gram_14k : (r24 != null ? Number((r24 * 14 / 24).toFixed(2)) : null)
+          const inr9 = it.inr_per_gram_9k != null ? it.inr_per_gram_9k : (r24 != null ? Number((r24 * 9 / 24).toFixed(2)) : null)
+          return {
+            ...it,
+            inr_per_gram_14k: inr14,
+            inr_per_gram_9k: inr9,
+          }
+        }) as GoldRateHistoryItem[]
+        setRateHistory(normalized)
+        console.log('[loadRateHistory] Loaded history with', normalized.length, 'records')
+        return normalized
       }
     } catch (err) {
       console.error('[loadRateHistory] Failed to load rate history:', err)
@@ -169,8 +188,8 @@ function App() {
           '24': lastRate.inr_per_gram_24k,
           '22': lastRate.inr_per_gram_22k,
           '18': lastRate.inr_per_gram_18k,
-          '14': lastRate.inr_per_gram_14k,
-          '9': lastRate.inr_per_gram_9k,
+          '14': lastRate.inr_per_gram_14k ?? (lastRate.inr_per_gram_24k != null ? Number((lastRate.inr_per_gram_24k * 14 / 24).toFixed(2)) : null),
+          '9': lastRate.inr_per_gram_9k ?? (lastRate.inr_per_gram_24k != null ? Number((lastRate.inr_per_gram_24k * 9 / 24).toFixed(2)) : null),
         },
         source: lastRate.source + ' (Fallback)',
       }
@@ -765,12 +784,14 @@ function App() {
                       <th style={{ textAlign: 'right' }}>24KT Gold (₹/g)</th>
                       <th style={{ textAlign: 'right' }}>22KT Gold (₹/g)</th>
                       <th style={{ textAlign: 'right' }}>18KT Gold (₹/g)</th>
+                      <th style={{ textAlign: 'right' }}>14KT Gold (₹/g)</th>
+                      <th style={{ textAlign: 'right' }}>9KT Gold (₹/g)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rateHistory.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="table-empty">No rate data available.</td>
+                        <td colSpan={6} className="table-empty">No rate data available.</td>
                       </tr>
                     ) : (
                       rateHistory.map((rate) => (
@@ -784,6 +805,12 @@ function App() {
                           </td>
                           <td style={{ textAlign: 'right' }}>
                             {rate.inr_per_gram_18k != null ? `₹${rate.inr_per_gram_18k.toLocaleString('en-IN')}` : '—'}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            {rate.inr_per_gram_14k != null ? `₹${rate.inr_per_gram_14k.toLocaleString('en-IN')}` : '—'}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            {rate.inr_per_gram_9k != null ? `₹${rate.inr_per_gram_9k.toLocaleString('en-IN')}` : '—'}
                           </td>
                         </tr>
                       ))
