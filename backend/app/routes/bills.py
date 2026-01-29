@@ -336,33 +336,37 @@ async def upload_bill(file: UploadFile = File(...), category: str | None = Form(
   raw_bytes = await file.read()
   print(f"[bills.upload] Raw bytes length: {len(raw_bytes)}")
 
-  bills_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", "files", "bills")
-  bills_dir = os.path.abspath(bills_dir)
+  # Save uploads to a temporary bills directory. Files will be moved to the final bills
+  # directory only when an investment is saved (user confirms).
+  base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "files"))
+  temp_dir = os.path.join(base_dir, "temp_bills")
+  os.makedirs(temp_dir, exist_ok=True)
+  bills_dir = os.path.join(base_dir, "bills")
   os.makedirs(bills_dir, exist_ok=True)
-  print(f"[bills.upload] Bills directory: {bills_dir}")
+  print(f"[bills.upload] Temp bills directory: {temp_dir}")
+  print(f"[bills.upload] Final bills directory: {bills_dir}")
+
   bill_id = str(uuid.uuid4())
   print(f"[bills.upload] Generated bill_id: {bill_id}")
 
-  # Use the original filename when saving. Sanitize to basename to avoid path traversal.
+  # Use the original filename when saving temporarily. Sanitize to basename to avoid path traversal.
   original_name = os.path.basename(file.filename) if file.filename else ''
   # Fallback to uuid-based name if original filename missing
   if not original_name:
     original_name = f"{bill_id}.pdf" if content_type == 'application/pdf' else f"{bill_id}.img"
-  target_path = os.path.join(bills_dir, original_name)
-  # If file with same name already exists, reject by filename
-  if os.path.exists(target_path):
-    print(f"[bills.upload] Duplicate filename upload attempted: {original_name}")
-    raise HTTPException(status_code=400, detail="This file has already been added")
+  # Temp filename includes bill_id prefix to allow lookup on commit
+  temp_filename = f"{bill_id}_{original_name}"
+  temp_path = os.path.join(temp_dir, temp_filename)
 
   if content_type.startswith("image/"):
-    # Save image using original filename
-    file_path = target_path
+    # Save image temporarily
+    file_path = temp_path
     try:
       with open(file_path, "wb") as f:
         f.write(raw_bytes)
-      print(f"[bills.upload] Saved image to {file_path}")
+      print(f"[bills.upload] Saved image to temp path {file_path}")
     except OSError as e:
-      print(f"[bills.upload] Failed to save image: {e}")
+      print(f"[bills.upload] Failed to save image to temp path: {e}")
       file_path = None
 
     b64 = base64.b64encode(raw_bytes).decode("utf-8")
@@ -395,14 +399,14 @@ async def upload_bill(file: UploadFile = File(...), category: str | None = Form(
       raise HTTPException(status_code=400, detail="Unable to render first page of PDF")
     print(f"[bills.upload] Rendered first page PNG length: {len(png_bytes)}")
 
-    # Save PDF using original filename
-    file_path = target_path
+    # Save PDF temporarily
+    file_path = temp_path
     try:
       with open(file_path, "wb") as f:
         f.write(raw_bytes)
-      print(f"[bills.upload] Saved PDF to {file_path}")
+      print(f"[bills.upload] Saved PDF to temp path {file_path}")
     except OSError as e:
-      print(f"[bills.upload] Failed to save PDF: {e}")
+      print(f"[bills.upload] Failed to save PDF to temp path: {e}")
       file_path = None
 
     b64 = base64.b64encode(png_bytes).decode("utf-8")
