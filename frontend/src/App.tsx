@@ -326,20 +326,37 @@ function App() {
       return 0
     }
 
-    // BULLION: use live gold rate × weight (treat as pure bullion by default)
+    // BULLION: detect metal type from metadata or product name and use corresponding live rate
     if (inv.category === 'bullion') {
-      if (!goldToday || !goldToday.inr_per_gram) return inv.total_amount ?? 0
+      const nameLower = String(inv.name || '').toLowerCase()
+      const metalFromMeta = (meta && meta.metal) ? String(meta.metal).toLowerCase() : ''
+      let detected: 'gold' | 'silver' | 'platinum' | null = null
+      if (metalFromMeta) {
+        if (metalFromMeta.includes('silver')) detected = 'silver'
+        else if (metalFromMeta.includes('platinum')) detected = 'platinum'
+        else if (metalFromMeta.includes('gold')) detected = 'gold'
+      }
+      if (!detected) {
+        if (nameLower.includes('silver')) detected = 'silver'
+        else if (nameLower.includes('platinum')) detected = 'platinum'
+        else if (nameLower.includes('gold')) detected = 'gold'
+      }
 
+      const weight = inv.weight_grams ?? (meta.netMetalWeight ?? 0)
+      if (detected === 'silver') {
+        if (!silverToday || typeof silverToday.inr_per_gram !== 'number') return inv.total_amount ?? 0
+        return weight > 0 ? silverToday.inr_per_gram * weight : inv.total_amount ?? 0
+      }
+      if (detected === 'platinum') {
+        if (!platinumToday || typeof platinumToday.inr_per_gram !== 'number') return inv.total_amount ?? 0
+        return weight > 0 ? platinumToday.inr_per_gram * weight : inv.total_amount ?? 0
+      }
+      // default to gold if unknown
+      if (!goldToday || !goldToday.inr_per_gram) return inv.total_amount ?? 0
       const purity = inv.purity_karat ?? 24
       const purityKey = String(purity)
       const rate = goldToday.inr_per_gram[purityKey] ?? goldToday.inr_per_gram['24']
-      const weight = inv.weight_grams ?? (meta.netMetalWeight ?? 0)
-
-      if (rate && weight > 0) {
-        return rate * weight
-      }
-      // fallback to invested amount when missing data
-      return inv.total_amount ?? 0
+      return rate && weight > 0 ? rate * weight : inv.total_amount ?? 0
     }
 
     // SILVER: detect silver by category, metadata, or name
@@ -1051,6 +1068,8 @@ function App() {
               title="Recent investments"
               investments={[...investments].slice(0, 8)}
               goldToday={goldToday}
+              silverToday={silverToday}
+              platinumToday={platinumToday}
               onView={openDrawer}
               onDelete={deleteInvestment}
               anchorRefs={anchorRefs}
@@ -1087,6 +1106,8 @@ function App() {
             title="Gold Jewellery"
             investments={goldInvestments}
             goldToday={goldToday}
+            silverToday={silverToday}
+            platinumToday={platinumToday}
             onView={openDrawer}
             onDelete={deleteInvestment}
             anchorRefs={anchorRefs}
@@ -1098,6 +1119,8 @@ function App() {
             title="Bullions"
             investments={bullionInvestments}
             goldToday={goldToday}
+            silverToday={silverToday}
+            platinumToday={platinumToday}
             onView={openDrawer}
             onDelete={deleteInvestment}
             anchorRefs={anchorRefs}
@@ -1109,6 +1132,8 @@ function App() {
             title="Diamond Jewellery"
             investments={diamondInvestments}
             goldToday={goldToday}
+            silverToday={silverToday}
+            platinumToday={platinumToday}
             onView={openDrawer}
             onDelete={deleteInvestment}
             anchorRefs={anchorRefs}
@@ -1537,10 +1562,14 @@ function InvestmentTable({
   onView,
   onDelete,
   anchorRefs,
+  silverToday,
+  platinumToday,
 }: {
   title: string
   investments: SavedInvestment[]
   goldToday: GoldTodayResponse | null
+  silverToday: SilverTodayResponse | null
+  platinumToday: PlatinumTodayResponse | null
   onView: (inv: SavedInvestment) => void
   onDelete: (id: string) => void
   anchorRefs: React.MutableRefObject<Record<string, HTMLButtonElement | null>>
@@ -1603,17 +1632,48 @@ function InvestmentTable({
     }
     
     
-    // BULLION: compute current value for table returns using live rates
+    // BULLION: detect metal and compute current value accordingly
     if (inv.category === 'bullion') {
-      const purity = inv.purity_karat ?? (typeof meta.goldPurity === 'string' ? parseInt(meta.goldPurity.replace(/[^0-9]/g, ''), 10) : null) ?? 24
-      const weight = inv.weight_grams ?? (typeof meta.netMetalWeight === 'number' ? meta.netMetalWeight : 0) ?? 0
-      const rate = goldToday.inr_per_gram[String(purity)] ?? goldToday.inr_per_gram['24']
+      const nameLower = String(inv.name || '').toLowerCase()
+      const metalFromMeta = (meta && meta.metal) ? String(meta.metal).toLowerCase() : ''
+      let detected: 'gold' | 'silver' | 'platinum' | null = null
+      if (metalFromMeta) {
+        if (metalFromMeta.includes('silver')) detected = 'silver'
+        else if (metalFromMeta.includes('platinum')) detected = 'platinum'
+        else if (metalFromMeta.includes('gold')) detected = 'gold'
+      }
+      if (!detected) {
+        if (nameLower.includes('silver')) detected = 'silver'
+        else if (nameLower.includes('platinum')) detected = 'platinum'
+        else if (nameLower.includes('gold')) detected = 'gold'
+      }
 
+      const weight = inv.weight_grams ?? (typeof meta.netMetalWeight === 'number' ? meta.netMetalWeight : 0) ?? 0
+
+      if (detected === 'silver') {
+        if (!silverToday || typeof silverToday.inr_per_gram !== 'number') return null
+        const currentValue = silverToday.inr_per_gram * weight
+        const invested = inv.total_amount ?? 0
+        const retAmt = currentValue - invested
+        const retPct = invested > 0 ? (retAmt / invested) * 100 : 0
+        return { currentValue, retAmt, retPct }
+      }
+      if (detected === 'platinum') {
+        if (!platinumToday || typeof platinumToday.inr_per_gram !== 'number') return null
+        const currentValue = platinumToday.inr_per_gram * weight
+        const invested = inv.total_amount ?? 0
+        const retAmt = currentValue - invested
+        const retPct = invested > 0 ? (retAmt / invested) * 100 : 0
+        return { currentValue, retAmt, retPct }
+      }
+
+      // default: gold
+      const purity = inv.purity_karat ?? (typeof meta.goldPurity === 'string' ? parseInt(meta.goldPurity.replace(/[^0-9]/g, ''), 10) : null) ?? 24
+      const rate = goldToday.inr_per_gram[String(purity)] ?? goldToday.inr_per_gram['24']
       const currentValue = rate * weight
       const invested = inv.total_amount ?? 0
       const retAmt = currentValue - invested
       const retPct = invested > 0 ? (retAmt / invested) * 100 : 0
-
       return { currentValue, retAmt, retPct }
     }
 
