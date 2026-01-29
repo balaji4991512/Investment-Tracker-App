@@ -55,3 +55,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Ignore temporary uploaded bills
+backend/app/files/temp_bills/
