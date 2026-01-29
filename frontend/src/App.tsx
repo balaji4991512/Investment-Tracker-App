@@ -1403,9 +1403,11 @@ function InvestmentTable({
             <thead>
               <tr>
                 <th>Item</th>
+                <th>Category</th>
                 <th>Vendor</th>
                 <th>Date</th>
                 <th style={{ textAlign: 'right' }}>Invested</th>
+                <th style={{ textAlign: 'right' }}>Current Value</th>
                 <th style={{ textAlign: 'right' }}>Return</th>
                 <th style={{ width: 80 }} />
               </tr>
@@ -1413,23 +1415,25 @@ function InvestmentTable({
             <tbody>
               {investments.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="table-empty">No investments yet.</td>
+                  <td colSpan={8} className="table-empty">No investments yet.</td>
                 </tr>
               ) : (
                 investments.map((inv) => {
                   const r = computeReturn(inv)
                   const retText = r ? `${r.retAmt >= 0 ? '+' : ''}₹${Math.round(r.retAmt).toLocaleString('en-IN')} (${r.retPct >= 0 ? '+' : ''}${r.retPct.toFixed(2)}%)` : '—'
                   const retClass = r ? (r.retAmt >= 0 ? 'green' : 'red') : ''
-                  return (
+                    return (
                     <tr key={inv.id}>
                       <td>
                         <button className="link-btn" type="button" onClick={() => onView(inv)}>
                           {inv.name}
                         </button>
                       </td>
+                      <td>{inv.category === 'gold_jewellery' ? 'Gold' : inv.category === 'diamond_jewellery' ? 'Diamond' : inv.category === 'bullion' ? 'Bullion' : inv.category}</td>
                       <td>{inv.vendor ?? '—'}</td>
                       <td>{inv.date ?? '—'}</td>
                       <td style={{ textAlign: 'right' }}>₹{inv.total_amount.toLocaleString('en-IN')}</td>
+                      <td style={{ textAlign: 'right' }}>{r && r.currentValue != null ? `₹${Math.round(r.currentValue).toLocaleString('en-IN')}` : '—'}</td>
                       <td style={{ textAlign: 'right' }} className={retClass}>{retText}</td>
                       <td style={{ textAlign: 'right' }}>
                         <div className="row-menu">
