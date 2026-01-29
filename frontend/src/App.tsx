@@ -21,7 +21,7 @@ interface SavedInvestment {
   metadata: any
 }
 
-type ActiveTab = 'home' | 'gold_list' | 'diamond_list' | 'rate_history'
+type ActiveTab = 'home' | 'gold_list' | 'diamond_list' | 'bullion_list' | 'rate_history'
 
 type GoldTodayResponse = {
   date: string
@@ -231,6 +231,22 @@ function App() {
       }
       return 0
     }
+
+    // BULLION: use live gold rate × weight (treat as pure bullion by default)
+    if (inv.category === 'bullion') {
+      if (!goldToday || !goldToday.inr_per_gram) return inv.total_amount ?? 0
+
+      const purity = inv.purity_karat ?? 24
+      const purityKey = String(purity)
+      const rate = goldToday.inr_per_gram[purityKey] ?? goldToday.inr_per_gram['24']
+      const weight = inv.weight_grams ?? (meta.netMetalWeight ?? 0)
+
+      if (rate && weight > 0) {
+        return rate * weight
+      }
+      // fallback to invested amount when missing data
+      return inv.total_amount ?? 0
+    }
     
     // DIAMOND JEWELLERY: Current Value = Gold Value + Diamond Value
     if (inv.category === 'diamond_jewellery') {
@@ -276,8 +292,10 @@ function App() {
   // Keep category-filtered arrays for sidebar navigation (still useful for filtering views)
   const goldInvestments = investments.filter(inv => inv.category === 'gold_jewellery')
   const diamondInvestments = investments.filter(inv => inv.category === 'diamond_jewellery')
+  const bullionInvestments = investments.filter(inv => inv.category === 'bullion')
   const goldTotal = goldInvestments.reduce((sum, inv) => sum + (inv.total_amount || 0), 0)
   const diamondTotal = diamondInvestments.reduce((sum, inv) => sum + (inv.total_amount || 0), 0)
+  const bullionTotal = bullionInvestments.reduce((sum, inv) => sum + (inv.total_amount || 0), 0)
 
   // Category-level current values and returns (for future category-level dashboard)
   // const goldReturnAmount = currentGoldValue - goldTotal
@@ -454,7 +472,7 @@ function App() {
       const formData = new FormData()
       formData.append('file', file)
       // Tell backend which extraction schema to use
-      formData.append('category', selectedCategory === 'diamond' ? 'diamond_jewellery' : 'gold_jewellery')
+      formData.append('category', selectedCategory === 'diamond' ? 'diamond_jewellery' : selectedCategory === 'bullion' ? 'bullion' : 'gold_jewellery')
 
       const res = await fetch('http://127.0.0.1:8000/bills/upload', {
         method: 'POST',
@@ -556,6 +574,14 @@ function App() {
     setModalStep('upload')
   }
 
+  // allow opening modal for bullion as well
+  const openAddForCategoryExtended = (category: 'gold' | 'diamond' | 'bullion') => {
+    setSelectedCategory(category)
+    setIsAddMenuOpen(false)
+    setIsModalOpen(true)
+    setModalStep('upload')
+  }
+
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       const t = e.target as HTMLElement | null
@@ -591,7 +617,7 @@ function App() {
 
       let payload: any = {
         bill_id: billId,
-        category: selectedCategory === 'gold' ? 'gold_jewellery' : 'diamond_jewellery',
+        category: selectedCategory === 'gold' ? 'gold_jewellery' : selectedCategory === 'diamond' ? 'diamond_jewellery' : selectedCategory === 'bullion' ? 'bullion' : 'gold_jewellery',
         name: productName || 'Jewellery investment',
         vendor: vendorName || null,
         date: purchaseDate || null,
@@ -627,7 +653,7 @@ function App() {
       // Clone metadata so we can add computed values without losing original extraction
       const metaCopy = metadata ? { ...metadata } : {}
 
-      if (selectedCategory === 'gold') {
+      if (selectedCategory === 'gold' || selectedCategory === 'bullion') {
         // GOLD: If invoice Gross is present, use it directly (Gross + GST - Discounts).
         // Do NOT derive stone cost when not present; treat stone as 0 unless explicitly provided and stone weight exists.
         const hallmarkCharges = typeof metaCopy.hallmark_charges === 'number' ? metaCopy.hallmark_charges : 0
@@ -759,6 +785,9 @@ function App() {
             <button className={activeView === 'gold_list' ? 'side-nav-item active' : 'side-nav-item'} onClick={() => setActiveView('gold_list')} type="button">
               Gold Jewellery
             </button>
+            <button className={activeView === 'bullion_list' ? 'side-nav-item active' : 'side-nav-item'} onClick={() => setActiveView('bullion_list')} type="button">
+              Bullions
+            </button>
             <button className={activeView === 'diamond_list' ? 'side-nav-item active' : 'side-nav-item'} onClick={() => setActiveView('diamond_list')} type="button">
               Diamond Jewellery
             </button>
@@ -779,7 +808,7 @@ function App() {
           <header className="topbar">
             <div className="topbar-left">
               <div className="topbar-title">
-                {activeView === 'home' ? 'Overview' : activeView === 'gold_list' ? 'Gold Jewellery' : activeView === 'diamond_list' ? 'Diamond Jewellery' : 'Live Gold Rates'}
+                {activeView === 'home' ? 'Overview' : activeView === 'gold_list' ? 'Gold Jewellery' : activeView === 'bullion_list' ? 'Bullions' : activeView === 'diamond_list' ? 'Diamond Jewellery' : 'Live Gold Rates'}
               </div>
               <div className="topbar-sub">Clean, modern investment tracker</div>
             </div>
@@ -850,6 +879,17 @@ function App() {
               />
             </section>
 
+            <section style={{ marginTop: 12 }}>
+              <CategoryCard
+                title="Bullions"
+                subtitle="Track bullion holdings"
+                accent="bullion"
+                count={bullionInvestments.length}
+                total={bullionTotal}
+                onClick={() => setActiveView('bullion_list')}
+              />
+            </section>
+
             <InvestmentTable
               title="Recent investments"
               investments={[...investments].slice(0, 8)}
@@ -871,10 +911,13 @@ function App() {
             </button>
             {isAddMenuOpen && (
               <div className="fab-menu" role="menu">
-                <button className="add-menu-item" type="button" onClick={() => openAddForCategory('gold')}>
+                <button className="add-menu-item" type="button" onClick={() => openAddForCategoryExtended('gold')}>
                   Gold Jewellery
                 </button>
-                <button className="add-menu-item" type="button" onClick={() => openAddForCategory('diamond')}>
+                <button className="add-menu-item" type="button" onClick={() => openAddForCategoryExtended('bullion')}>
+                  Bullions
+                </button>
+                <button className="add-menu-item" type="button" onClick={() => openAddForCategoryExtended('diamond')}>
                   Diamond Jewellery
                 </button>
               </div>
@@ -886,6 +929,17 @@ function App() {
           <InvestmentTable
             title="Gold Jewellery"
             investments={goldInvestments}
+            goldToday={goldToday}
+            onView={openDrawer}
+            onDelete={deleteInvestment}
+            anchorRefs={anchorRefs}
+          />
+        )}
+
+        {activeView === 'bullion_list' && (
+          <InvestmentTable
+            title="Bullions"
+            investments={bullionInvestments}
             goldToday={goldToday}
             onView={openDrawer}
             onDelete={deleteInvestment}
@@ -972,10 +1026,13 @@ function App() {
                 <div className="category-select">
                   <p className="upload-title">Select investment type</p>
                   <div className="category-options">
-                    <button className={selectedCategory === 'gold' ? 'toggle-btn active' : 'toggle-btn'} onClick={() => openAddForCategory('gold')}>
+                    <button className={selectedCategory === 'gold' ? 'toggle-btn active' : 'toggle-btn'} onClick={() => openAddForCategoryExtended('gold')}>
                       Gold Jewellery
                     </button>
-                    <button className={selectedCategory === 'diamond' ? 'toggle-btn active' : 'toggle-btn'} onClick={() => openAddForCategory('diamond')}>
+                    <button className={selectedCategory === 'bullion' ? 'toggle-btn active' : 'toggle-btn'} onClick={() => openAddForCategoryExtended('bullion')}>
+                      Bullions
+                    </button>
+                    <button className={selectedCategory === 'diamond' ? 'toggle-btn active' : 'toggle-btn'} onClick={() => openAddForCategoryExtended('diamond')}>
                       Diamond Jewellery
                     </button>
                   </div>
@@ -1201,20 +1258,20 @@ function App() {
 type CategoryCardProps = {
   title: string
   subtitle: string
-  accent: 'gold' | 'diamond'
+  accent: 'gold' | 'diamond' | 'bullion'
   count: number
   total: number
   onClick: () => void
 }
 
 function CategoryCard({ title, subtitle, accent, count, total, onClick }: CategoryCardProps) {
-  const accentColor = accent === 'gold' ? 'var(--accent)' : 'var(--accent2)'
+  const accentColor = accent === 'gold' ? 'var(--accent)' : accent === 'diamond' ? 'var(--accent2)' : 'var(--accent3)'
   
   return (
     <div className={`category-card ${accent}`} onClick={onClick} style={{ cursor: 'pointer' }}>
       {/* Icon/Logo */}
       <div className="card-icon" style={{ background: `${accentColor}15` }}>
-        <span className="card-icon-text">{accent === 'gold' ? '🏆' : '💎'}</span>
+        <span className="card-icon-text">{accent === 'gold' ? '🏆' : accent === 'diamond' ? '💎' : '🪙'}</span>
       </div>
       
       {/* Instrument Name */}
@@ -1313,6 +1370,21 @@ function InvestmentTable({
       return { currentValue, retAmt, retPct }
     }
     
+    
+    // BULLION: compute current value for table returns using live rates
+    if (inv.category === 'bullion') {
+      const purity = inv.purity_karat ?? (typeof meta.goldPurity === 'string' ? parseInt(meta.goldPurity.replace(/[^0-9]/g, ''), 10) : null) ?? 24
+      const weight = inv.weight_grams ?? (typeof meta.netMetalWeight === 'number' ? meta.netMetalWeight : 0) ?? 0
+      const rate = goldToday.inr_per_gram[String(purity)] ?? goldToday.inr_per_gram['24']
+
+      const currentValue = rate * weight
+      const invested = inv.total_amount ?? 0
+      const retAmt = currentValue - invested
+      const retPct = invested > 0 ? (retAmt / invested) * 100 : 0
+
+      return { currentValue, retAmt, retPct }
+    }
+
     return null
   }
 
