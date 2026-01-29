@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
+import RowMenu from './components/RowMenu'
 
 type UploadState = 'idle' | 'uploading' | 'done' | 'error'
 type ModalStep = 'category' | 'upload' | 'review'
@@ -57,6 +58,8 @@ function App() {
 
   const [selectedInvestment, setSelectedInvestment] = useState<SavedInvestment | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+
+  const anchorRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
   // Review fields mapped from extracted JSON
   const [vendorName, setVendorName] = useState('')
@@ -156,15 +159,18 @@ function App() {
         const data = await res.json()
         // Normalize history: ensure 14k and 9k rates exist (compute from 24k if missing)
         const normalized = (data || []).map((it: any) => {
-          const r24 = it.inr_per_gram_24k
-          const inr14 = it.inr_per_gram_14k != null ? it.inr_per_gram_14k : (r24 != null ? Number((r24 * 14 / 24).toFixed(2)) : null)
-          const inr9 = it.inr_per_gram_9k != null ? it.inr_per_gram_9k : (r24 != null ? Number((r24 * 9 / 24).toFixed(2)) : null)
+          const r24 = it.inr_per_gram_24k ?? 0
+          const inr14 = it.inr_per_gram_14k != null ? it.inr_per_gram_14k : (r24 > 0 ? Number((r24 * 14 / 24).toFixed(2)) : null)
+          const inr9 = it.inr_per_gram_9k != null ? it.inr_per_gram_9k : (r24 > 0 ? Number((r24 * 9 / 24).toFixed(2)) : null)
           return {
             ...it,
+            inr_per_gram_24k: it.inr_per_gram_24k,
+            inr_per_gram_22k: it.inr_per_gram_22k,
+            inr_per_gram_18k: it.inr_per_gram_18k,
             inr_per_gram_14k: inr14,
             inr_per_gram_9k: inr9,
-          }
-        }) as GoldRateHistoryItem[]
+          } as GoldRateHistoryItem
+        })
         setRateHistory(normalized)
         console.log('[loadRateHistory] Loaded history with', normalized.length, 'records')
         return normalized
@@ -721,6 +727,7 @@ function App() {
               goldToday={goldToday}
               onView={openDrawer}
               onDelete={deleteInvestment}
+              anchorRefs={anchorRefs}
             />
 
             {/* Floating Add button */}
@@ -753,6 +760,7 @@ function App() {
             goldToday={goldToday}
             onView={openDrawer}
             onDelete={deleteInvestment}
+            anchorRefs={anchorRefs}
           />
         )}
 
@@ -763,6 +771,7 @@ function App() {
             goldToday={goldToday}
             onView={openDrawer}
             onDelete={deleteInvestment}
+            anchorRefs={anchorRefs}
           />
         )}
 
@@ -1101,12 +1110,14 @@ function InvestmentTable({
   goldToday,
   onView,
   onDelete,
+  anchorRefs,
 }: {
   title: string
   investments: SavedInvestment[]
   goldToday: GoldTodayResponse | null
   onView: (inv: SavedInvestment) => void
   onDelete: (id: string) => void
+  anchorRefs: React.MutableRefObject<Record<string, HTMLButtonElement | null>>
 }) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
@@ -1213,15 +1224,24 @@ function InvestmentTable({
                       <td style={{ textAlign: 'right' }} className={retClass}>{retText}</td>
                       <td style={{ textAlign: 'right' }}>
                         <div className="row-menu">
-                          <button className="icon-btn" type="button" onClick={() => setOpenMenuId(openMenuId === inv.id ? null : inv.id)} aria-label="Row actions">
+                          <button
+                            className="icon-btn"
+                            type="button"
+                            ref={(el) => {
+                              if (el) anchorRefs.current[inv.id] = el
+                            }}
+                            onClick={() => setOpenMenuId(openMenuId === inv.id ? null : inv.id)}
+                            aria-label="Row actions"
+                          >
                             ⋯
                           </button>
-                          {openMenuId === inv.id && (
-                            <div className="row-menu-pop" role="menu">
-                              <button className="row-menu-item" type="button" onClick={() => { setOpenMenuId(null); onView(inv) }}>View</button>
-                              <button className="row-menu-item danger" type="button" onClick={() => { setOpenMenuId(null); onDelete(inv.id) }}>Delete</button>
-                            </div>
-                          )}
+                          <RowMenu
+                            anchorEl={anchorRefs.current[inv.id] ?? null}
+                            isOpen={openMenuId === inv.id}
+                            onClose={() => setOpenMenuId(null)}
+                            onView={() => { setOpenMenuId(null); onView(inv) }}
+                            onDelete={() => { setOpenMenuId(null); onDelete(inv.id) }}
+                          />
                         </div>
                       </td>
                     </tr>
