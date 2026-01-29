@@ -340,12 +340,23 @@ async def upload_bill(file: UploadFile = File(...), category: str | None = Form(
   bills_dir = os.path.abspath(bills_dir)
   os.makedirs(bills_dir, exist_ok=True)
   print(f"[bills.upload] Bills directory: {bills_dir}")
-
   bill_id = str(uuid.uuid4())
   print(f"[bills.upload] Generated bill_id: {bill_id}")
 
+  # Use the original filename when saving. Sanitize to basename to avoid path traversal.
+  original_name = os.path.basename(file.filename) if file.filename else ''
+  # Fallback to uuid-based name if original filename missing
+  if not original_name:
+    original_name = f"{bill_id}.pdf" if content_type == 'application/pdf' else f"{bill_id}.img"
+  target_path = os.path.join(bills_dir, original_name)
+  # If file with same name already exists, reject by filename
+  if os.path.exists(target_path):
+    print(f"[bills.upload] Duplicate filename upload attempted: {original_name}")
+    raise HTTPException(status_code=400, detail="This file has already been added")
+
   if content_type.startswith("image/"):
-    file_path = os.path.join(bills_dir, f"{bill_id}.img")
+    # Save image using original filename
+    file_path = target_path
     try:
       with open(file_path, "wb") as f:
         f.write(raw_bytes)
@@ -384,7 +395,8 @@ async def upload_bill(file: UploadFile = File(...), category: str | None = Form(
       raise HTTPException(status_code=400, detail="Unable to render first page of PDF")
     print(f"[bills.upload] Rendered first page PNG length: {len(png_bytes)}")
 
-    file_path = os.path.join(bills_dir, f"{bill_id}.pdf")
+    # Save PDF using original filename
+    file_path = target_path
     try:
       with open(file_path, "wb") as f:
         f.write(raw_bytes)
