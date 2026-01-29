@@ -358,6 +358,30 @@ async def upload_bill(file: UploadFile = File(...), category: str | None = Form(
   temp_filename = f"{bill_id}_{original_name}"
   temp_path = os.path.join(temp_dir, temp_filename)
 
+  # If a file with the same original filename already exists in temp or final bills,
+  # reject the upload to avoid duplicates.
+  try:
+    existing_temp = os.listdir(temp_dir)
+  except OSError:
+    existing_temp = []
+  try:
+    existing_final = os.listdir(bills_dir)
+  except OSError:
+    existing_final = []
+
+  def _matches_existing(name: str) -> bool:
+    # check exact name or prefixed with uuid_ pattern
+    if name == original_name:
+      return True
+    if name.endswith(f"_{original_name}"):
+      return True
+    return False
+
+  for fn in existing_temp + existing_final:
+    if _matches_existing(fn):
+      print(f"[bills.upload] Duplicate file detected for original name {original_name} -> existing: {fn}")
+      raise HTTPException(status_code=409, detail=f"A file named '{original_name}' already exists. Please remove it before uploading.")
+
   if content_type.startswith("image/"):
     # Save image temporarily
     file_path = temp_path
