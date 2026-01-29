@@ -385,29 +385,40 @@ function App() {
 
   // Calculate Stone/Diamond Value = Gross Price - Net Metal Price
   const calculateStoneValue = () => {
+    // Only compute stone/diamond value for Diamond jewellery. For Gold, stoneValue must not be derived.
+    if (selectedCategory !== 'diamond') {
+      setStoneValue('')
+      return 0
+    }
+
     const gross = parseFloat(grossPrice) || 0
     const metalWeight = parseFloat(netMetalWeight) || 0
     const rate = parseFloat(goldPrice) || 0
-    
-    if (gross > 0 && metalWeight > 0 && rate > 0) {
+
+    // Prefer explicit stoneCost if provided by extraction
+    const explicitStone = parseFloat(stoneCost) || 0
+    if (explicitStone > 0) {
+      setStoneValue(String(explicitStone))
+      return explicitStone
+    }
+
+    // Only compute fallback stone value when we have a stone/diamond weight (carat or stone weight)
+    const hasStoneWeight = (stoneWeight && String(stoneWeight).trim() !== '') || (diamondCarat && String(diamondCarat).trim() !== '')
+    if (gross > 0 && metalWeight > 0 && rate > 0 && hasStoneWeight) {
       const netMetalPrice = metalWeight * rate
       const stoneVal = gross - netMetalPrice
       setStoneValue(stoneVal > 0 ? String(stoneVal.toFixed(2)) : '0')
       return stoneVal
-    } else if (parseFloat(stoneCost) > 0) {
-      // If stone cost is directly available, use it
-      setStoneValue(stoneCost)
-      return parseFloat(stoneCost)
-    } else {
-      setStoneValue('')
-      return 0
     }
+
+    setStoneValue('')
+    return 0
   }
 
-  // Recalculate stone value whenever these fields change
+  // Recalculate stone/diamond value when relevant fields change (only for diamond category)
   useEffect(() => {
     calculateStoneValue()
-  }, [grossPrice, netMetalWeight, goldPrice, stoneCost])
+  }, [grossPrice, netMetalWeight, goldPrice, stoneCost, selectedCategory])
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -499,7 +510,18 @@ function App() {
         if (grossW != null) setGrossWeight(String(grossW))
         if (goldRate != null) setGoldPrice(String(goldRate))
         if (makingPG != null) setMakingChargesPerGram(String(makingPG))
-        if (stone != null) setStoneCost(String(stone))
+        // Only auto-populate stone cost when it's appropriate:
+        // - For diamond category: always populate if present
+        // - For gold category: populate only when a stone weight (g) is present in extraction
+        if (stone != null) {
+          const stoneWeightPresent = stoneW != null && Number(stoneW) > 0
+          if (selectedCategory === 'diamond' || (selectedCategory === 'gold' && stoneWeightPresent)) {
+            setStoneCost(String(stone))
+          } else {
+            // do not auto-populate stone cost for gold when no stone weight/carats present
+            // ensure stoneCost remains empty so UI won't show it
+          }
+        }
         if (metalValue != null) setGrossPrice(String(metalValue))
         if (gstTotal != null) setGsts(String(gstTotal))
         if (discountVal != null) setDiscounts(String(discountVal))
@@ -573,7 +595,8 @@ function App() {
         name: productName || 'Jewellery investment',
         vendor: vendorName || null,
         date: purchaseDate || null,
-        total_amount: toNumber(finalPrice),
+        // total_amount will be computed below per category rules to avoid inferred values
+        total_amount: null,
         weight_grams: toNumber(netMetalWeight),
         purity_karat: goldPurity ? parseInt(String(goldPurity).replace(/[^0-9]/g, ''), 10) || null : null,
         gold_rate_per_gram: toNumber(goldPrice),
@@ -591,6 +614,112 @@ function App() {
           diamond_certificate: diamondCertificate || null,
         }
       }
+
+      // Enforce pricing rules per category before sending
+      const weight = toNumber(netMetalWeight) || 0
+      const ratePerGram = toNumber(goldPrice) || 0
+      const makingPerGram = toNumber(makingChargesPerGram) || 0
+      const gstVal = toNumber(gsts) || 0
+      const discountsVal = toNumber(discounts) || 0
+      const explicitStone = toNumber(stoneCost) || null
+      const grossVal = toNumber(grossPrice) || null
+
+      // Clone metadata so we can add computed values without losing original extraction
+      const metaCopy = metadata ? { ...metadata } : {}
+
+      if (selectedCategory === 'gold') {
+        // GOLD: If invoice Gross is present, use it directly (Gross + GST - Discounts).
+        // Do NOT derive stone cost when not present; treat stone as 0 unless explicitly provided and stone weight exists.
+        const hallmarkCharges = typeof metaCopy.hallmark_charges === 'number' ? metaCopy.hallmark_charges : 0
+        // Prefer explicit finalPrice from extraction when available
+        const finalAmountNum = toNumber(finalPrice)
+        if (finalAmountNum != null) {
+          payload.total_amount = finalAmountNum
+          metaCopy.finalPrice = finalAmountNum
+          if (explicitStone != null && explicitStone > 0) metaCopy.stoneCost = explicitStone
+          metaCopy.goldRatePerGram = ratePerGram
+          metaCopy.netMetalWeight = weight
+        } else if (grossVal != null) {
+          // Use invoice gross as authoritative when finalPrice missing
+          payload.total_amount = Number((grossVal + (gstVal || 0) - (discountsVal || 0)).toFixed(2))
+          metaCopy.grossPrice = grossVal
+          if (explicitStone != null && explicitStone > 0) metaCopy.stoneCost = explicitStone
+          metaCopy.goldRatePerGram = ratePerGram
+          metaCopy.netMetalWeight = weight
+        } else {
+          // No invoice gross: compute from components (only when necessary)
+          const stoneVal = explicitStone != null ? explicitStone : 0
+          const metalValue = weight * ratePerGram
+          const makingTotal = makingPerGram * weight
+          const grossComputed = metalValue + makingTotal + (stoneVal || 0) + (hallmarkCharges || 0)
+          const finalComputed = grossComputed + (gstVal || 0) - (discountsVal || 0)
+
+          payload.total_amount = Number(finalComputed.toFixed(2))
+          metaCopy.grossPrice = grossComputed
+          if (explicitStone != null && explicitStone > 0) metaCopy.stoneCost = explicitStone
+          metaCopy.goldRatePerGram = ratePerGram
+          metaCopy.netMetalWeight = weight
+        }
+      }
+
+      if (selectedCategory === 'diamond') {
+        // DIAMOND: prefer explicit stoneCost; if absent, compute stone value = gross - metalValue when possible
+        let stoneVal: number | null = explicitStone
+        if ((stoneVal == null || stoneVal === 0) && grossVal != null && weight > 0 && ratePerGram > 0) {
+          const metalValue = weight * ratePerGram
+          stoneVal = Math.max(0, grossVal - metalValue)
+        }
+        if (stoneVal != null) {
+          metaCopy.stoneCost = Number(stoneVal.toFixed(2))
+        }
+        // Ensure backend has grossPrice if available
+        if (grossVal != null) metaCopy.grossPrice = grossVal
+        metaCopy.goldRatePerGram = ratePerGram
+        metaCopy.netMetalWeight = weight
+
+        // If finalPrice is provided by extraction/user, prefer it; otherwise compute from gross+gst-discounts when gross available
+        if (toNumber(finalPrice) != null) {
+          payload.total_amount = toNumber(finalPrice)
+        } else if (grossVal != null) {
+          payload.total_amount = Number((grossVal + (gstVal || 0) - (discountsVal || 0)).toFixed(2))
+        } else {
+          payload.total_amount = null
+        }
+      }
+
+      // FINAL VALIDATION: ensure Gross Price (if present in invoice) tallies with computed components
+      const tolerance = 1.0 // INR tolerance
+      // For gold we prefer invoice Gross when provided — no confirmation prompt needed.
+
+      if (selectedCategory === 'diamond') {
+        const metalValue = weight * ratePerGram
+        if (grossVal != null) {
+          // If explicit stone provided, check gross ≈ metal + stone
+          if (explicitStone != null && explicitStone > 0) {
+            const expectedGross = metalValue + explicitStone
+            if (Math.abs(expectedGross - grossVal) > tolerance) {
+              const proceed = confirm(
+                `Gross Price from invoice (₹${grossVal}) does not match Metal+Stone (₹${expectedGross.toFixed(2)}).\n\n` +
+                `Computed components:\n  Metal Value: ₹${metalValue.toFixed(2)}\n  Stone (explicit): ₹${explicitStone.toFixed(2)}\n\nProceed to save anyway?`
+              )
+              if (!proceed) return
+            }
+          }
+          // Also check final amount consistency if finalPrice not provided
+          if (toNumber(finalPrice) == null) {
+            const computedFinal = Number((grossVal + (gstVal || 0) - (discountsVal || 0)).toFixed(2))
+            if (payload.total_amount != null && Math.abs(payload.total_amount - computedFinal) > tolerance) {
+              const proceed = confirm(
+                `Computed final amount (₹${computedFinal}) differs from derived total (₹${payload.total_amount}). Proceed?`
+              )
+              if (!proceed) return
+            }
+          }
+        }
+      }
+
+      // Attach sanitized metadata copy
+      payload.metadata = metaCopy
 
       const res = await fetch('http://127.0.0.1:8000/investments/', {
         method: 'POST',
@@ -926,27 +1055,35 @@ function App() {
                       <label>Making Charges / gram (₹)</label>
                       <input className="field-input" value={makingChargesPerGram} onChange={(e) => setMakingChargesPerGram(e.target.value)} />
                     </div>
-                    <div className="review-field">
-                      <label>Stone Cost (₹)</label>
-                      <input className="field-input" value={stoneCost} onChange={(e) => setStoneCost(e.target.value)} />
-                    </div>
+                    {/* For Gold: only show Stone Cost if it was explicitly present in extraction (do not allow deriving it) */}
+                    {selectedCategory === 'gold' && stoneCost !== '' && (
+                      <div className="review-field">
+                        <label>Stone Cost (₹)</label>
+                        <input className="field-input" value={stoneCost} onChange={(e) => setStoneCost(e.target.value)} />
+                      </div>
+                    )}
+
                     <div className="review-field">
                       <label>Gross Price (₹)</label>
                       <input className="field-input" value={grossPrice} onChange={(e) => setGrossPrice(e.target.value)} />
                     </div>
-                    <div className="review-field">
-                      <label>Stone/Diamond Value (₹)</label>
-                      <input 
-                        className="field-input" 
-                        value={stoneValue} 
-                        readOnly 
-                        title="Calculated as: Gross Price - (Net Metal Weight × Gold Rate)"
-                        placeholder="Auto-calculated"
-                      />
-                      <small style={{ fontSize: '10px', color: 'rgba(15, 23, 42, 0.6)', marginTop: '2px' }}>
-                        Auto-calculated: Gross Price − (Weight × Rate) or direct Stone Cost
-                      </small>
-                    </div>
+
+                    {/* Show Stone/Diamond Value only for Diamond jewellery (prefer explicit stoneCost if present otherwise compute) */}
+                    {selectedCategory === 'diamond' && (
+                      <div className="review-field">
+                        <label>Stone/Diamond Value (₹)</label>
+                        <input 
+                          className="field-input" 
+                          value={stoneValue} 
+                          readOnly 
+                          title="Calculated as: Gross Price - (Net Metal Weight × Gold Rate)"
+                          placeholder="Auto-calculated"
+                        />
+                        <small style={{ fontSize: '10px', color: 'rgba(15, 23, 42, 0.6)', marginTop: '2px' }}>
+                          Auto-calculated: Gross Price − (Weight × Rate) or direct Stone Cost
+                        </small>
+                      </div>
+                    )}
 
                     {/* Diamond-specific fields */}
                     {selectedCategory === 'diamond' && (
